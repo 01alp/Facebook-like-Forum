@@ -1,0 +1,1 @@
+DROP TABLE post_view_permissions

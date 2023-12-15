@@ -1,0 +1,22 @@
+version: '3'
+services:
+  server1:
+    image: base-image
+    command: ./main
+    ports:
+      - "8080:8080"
+  caddy:
+    image: caddy:2.7.5
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+      - "2019:2019"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  caddy_data:
+  caddy_config:
