@@ -1,6 +1,7 @@
 package sqlQueries
 
 import (
+	"database/sql"
 	"fmt"
 	"social-network/internal/database"
 	"social-network/internal/logger"
@@ -197,4 +198,21 @@ func GetUserFollowing(userID int) ([]structs.User, error) {
 	fmt.Printf("\n\n--> followings : %+v\n", followingUsers)
 
 	return followingUsers, nil
+}
+
+func GetFollowStatus(sourceID int, targetID int) (int, error) { //0-pending, 1-accepted, 2-declined, 3-not following
+	var followStatus int
+
+	query := `SELECT status FROM user_followers WHERE follower_id = ? AND following_id = ?`
+	err := database.DB.QueryRow(query, sourceID, targetID).Scan(&followStatus)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			followStatus = 3
+			return followStatus, nil
+		}
+		logger.ErrorLogger.Printf("Error getting follow status for user %d -> %d:%v", sourceID, targetID, err)
+		return 0, err
+	}
+
+	return followStatus, nil
 }

@@ -27,8 +27,7 @@ function Profile({ userId }) {
 
   const currUserId = localStorage.getItem('user_id');
 
-  const [currentlyFollowing, setCurrentlyFollowing] = useState(false);
-  const [requestedToFollow, setRequestedToFollow] = useState(false);
+  const [followStatus, setFollowStatus] = useState(null); //0-pending, 1-accepted, 2-declined, 3-not following
   const [isCloseFriend, setCloseFriend] = useState(false);
 
   const getFollowerHandler = () => {
@@ -45,9 +44,6 @@ function Profile({ userId }) {
       .then((data) => {
         console.log('followersArr (context): ', data);
         setFollowerData(data.data);
-
-        const isFollowing = data.data.map((user) => user.id == userId);
-        setCurrentlyFollowing(isFollowing);
       })
       .catch((err) => console.log('Error fetching followers:', err));
   };
@@ -69,9 +65,31 @@ function Profile({ userId }) {
       .catch((err) => console.log('Error fetching following:', err));
   };
 
+  const getCurrentFollowStatus = () => {
+    fetch(`http://localhost:8080/getFollowStatus?targetID=${userId}`, {
+      credentials: 'include',
+    })
+      .then((resp) => {
+        if (!resp.ok) {
+          throw new Error(`HTTP error - status: ${resp.status}`);
+        }
+        return resp.json();
+      })
+      .then((data) => { //0-pending, 1-accepted, 2-declined, 3-not following
+        const receivedFollowStatus = data.data
+        if (receivedFollowStatus >= 0 && receivedFollowStatus < 4) {
+          setFollowStatus(receivedFollowStatus)
+        } else {
+          console.log(`Unexpected follow status: ${receivedFollowStatus}`);
+        }
+      })
+      .catch((err) => console.log('Error fetching follow status:', err));
+  }
+
   useEffect(() => {
     getFollowerHandler();
     getFollowingHandler();
+    getCurrentFollowStatus();
 
     const foundUser = usersCtx.usersList.find((user) => user.id === +userId);
 
@@ -96,14 +114,31 @@ function Profile({ userId }) {
     localStorage.setItem('isChecked', isChecked);
   }, [isChecked]);
 
-  const followHandler = () => {
+  const followHandler = async () => {
     console.log('got the message  ');
-    followingCtx.requestToFollow(targetUser, true);
+    const response = await followingCtx.requestToFollowOrUnfollow(targetUser, true);
+    if (response !== null) {
+      switch (response) {
+        case "Following successful":
+          setFollowStatus(1)
+          getFollowerHandler(); //NOTE: Could update followers list without fetching from API
+          break;
+        case "Follow request received":
+          setFollowStatus(0)
+          break;
+        default:
+          console.log("Unexpected response for follow request", response)
+      }
+    }
   };
 
-  const unfollowHandler = () => {
+  const unfollowHandler = async () => {
     console.log('got the message  ');
-    followingCtx.requestToFollow(targetUser, false);
+    const response = await followingCtx.requestToFollowOrUnfollow(targetUser, false);
+    if (response && response === "Unfollow successful") {
+      getFollowerHandler(); //NOTE: Could update followers list without fetching from API
+      setFollowStatus(3)
+    };
   };
 
   const setPublicityHandler = (e) => {
@@ -167,32 +202,47 @@ function Profile({ userId }) {
   let closeFriendText;
 
   if (currUserId !== userId) {
-    if (currentlyFollowing) {
-      followButton = (
-        <div>
-          <button onClick={unfollowHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
-            -UnFollow
-          </button>
-        </div>
-      );
-      console.log('currentlyFollowing', currentlyFollowing);
-    } else if (requestedToFollow) {
-      followButton = (
-        <div>
-          <button className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
-            Requested
-          </button>
-        </div>
-      );
-    } else {
-      followButton = (
-        <div>
-          <button onClick={followHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
-            +Follow
-          </button>
-        </div>
-      );
+    switch(followStatus) {
+      case 0: //Pending request
+        followButton = (
+          <div>
+            <button onClick={unfollowHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId} title="Cancel request">
+              Requested
+            </button>
+          </div>
+        );
+      break;
+      case 1: //Accepted, following
+        followButton = (
+          <div>
+            <button onClick={unfollowHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
+              Unfollow
+            </button>
+          </div>
+        );
+        break;
+      case 2: //Declined
+       followButton = (
+          <div>
+            <button className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
+              Declined
+            </button>
+          </div>
+        );
+        break;
+      case 3: //Not following nor requested
+        followButton = (
+          <div>
+            <button onClick={followHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
+              Follow
+            </button>
+          </div>
+        );
+        break;
+      default:
+        console.log("Unexptected follow status:", followStatus)
     }
+
     messageButton = (
       <div>
         <Link className="btn btn-primary btn-sm" role="button" style={{ marginRight: 5 }} to="/chat">

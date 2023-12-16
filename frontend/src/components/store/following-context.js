@@ -11,7 +11,7 @@ export const FollowingContext = React.createContext({
   setFollowers: () => {},
   followersChat: [],
   getFollowers: () => {},
-  requestToFollow: (followUser) => {},
+  requestToFollowOrUnfollow: (followUser) => {},
   follow: (followUser) => {},
   unfollow: (unfollowUser) => {},
   receiveMsgFollowing: (frdId, open, isFollowing) => {},
@@ -19,8 +19,8 @@ export const FollowingContext = React.createContext({
 
 export const FollowingContextProvider = (props) => {
   const selfId = localStorage.getItem('user_id');
-  const followingUrl = `http://localhost:8080/getFollowing?userId=${selfId}`; //NOTE: userID not needed, server checks ID from session
-  const followersUrl = `http://localhost:8080/getFollowers?userId=${selfId}`; //NOTE: userID not needed, server checks ID from session
+  const followingUrl = `http://localhost:8080/getFollowing?userId=${selfId}`;
+  const followersUrl = `http://localhost:8080/getFollowers?userId=${selfId}`;
   const [following, setFollowing] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [followingChat, setFollowingChat] = useState([]);
@@ -67,7 +67,7 @@ export const FollowingContextProvider = (props) => {
       .catch((err) => console.log('Error fetching followers:', err));
   };
 
-  const requestToFollowHandler = async (followUser, follow) => {
+  const requestToFollowOrUnfollowHandler = async (followUser, follow) => {
     console.log('request to follow (context): ', followUser.id);
 
     const followPayloadObj = {
@@ -98,11 +98,13 @@ export const FollowingContextProvider = (props) => {
         throw new Error('Follow/unfollow request failed');
       }
 
-      // Handle success if needed
+      const responseData = await response.json()
       console.log('Follow/unfollow request successful');
+      return responseData.data
+
     } catch (error) {
       console.error('Error sending follow/unfollow request:', error);
-      // Handle error
+      return null
     }
   };
 
@@ -165,7 +167,7 @@ export const FollowingContextProvider = (props) => {
         followingChat: followingChat,
         getFollowing: getFollowingHandler,
         getFollowers: getFollowerHandler,
-        requestToFollow: requestToFollowHandler,
+        requestToFollowOrUnfollow: requestToFollowOrUnfollowHandler,
         // follow: followHandler,
         // unfollow: unfollowHandler,
       }}

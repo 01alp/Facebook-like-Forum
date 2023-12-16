@@ -132,18 +132,28 @@ func (c *Client) WritePump() {
 				return
 			}
 
+			var messages []json.RawMessage
+			messages = append(messages, message)
+
+			// Include all queued messages to ws message
+			n := len(c.egress)
+			for i := 0; i < n; i++ {
+				messages = append(messages, <-c.egress)
+			}
+
+			// Create json for combined messages
+			combinedMessage, err := json.Marshal(map[string][]json.RawMessage{"messages": messages})
+			if err != nil {
+				logger.ErrorLogger.Println("Error marshaling combined message in WritePump:", err)
+				return
+			}
+
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
 
-			w.Write(message)
-
-			// Include all queued messages to ws message
-			n := len(c.egress)
-			for i := 0; i < n; i++ {
-				w.Write(<-c.egress)
-			}
+			w.Write(combinedMessage)
 
 			if err := w.Close(); err != nil {
 				return

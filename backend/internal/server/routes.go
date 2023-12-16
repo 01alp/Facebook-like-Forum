@@ -84,6 +84,7 @@ func (s *Server) RegisterRoutes() {
 	mux.HandleFunc("/cancelGroupRequest", Middleware(AuthMiddlewareHandler{Handler: groups.CancelGroupRequest, RequiresAuth: true}))
 	mux.HandleFunc("/getGroupCount", Middleware(AuthMiddlewareHandler{Handler: groups.GetTotalGroupCount, RequiresAuth: false}))
 	mux.HandleFunc("/leaveGroup", Middleware(AuthMiddlewareHandler{Handler: groups.LeaveGroup, RequiresAuth: true}))
+
 	// websocket:
 	mux.HandleFunc("/ws", websocket.UpgradeHandler) //TODO: Move through middleware?
 
@@ -93,6 +94,7 @@ func (s *Server) RegisterRoutes() {
 	mux.HandleFunc("/followOrUnfollowRequest", Middleware(AuthMiddlewareHandler{Handler: users.HandleFollowOrUnfollowRequest, RequiresAuth: true}))
 	mux.HandleFunc("/getFollowers", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowers, RequiresAuth: true}))
 	mux.HandleFunc("/getFollowing", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowing, RequiresAuth: true}))
+	mux.HandleFunc("/getFollowStatus", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowStatus, RequiresAuth: true}))
 
 	mux.HandleFunc("/", Middleware(AuthMiddlewareHandler{Handler: handleNotFound, RequiresAuth: false}))
 }

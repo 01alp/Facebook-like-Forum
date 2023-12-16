@@ -22,7 +22,7 @@ type Service struct {
 func HandleFollowOrUnfollowRequest(w http.ResponseWriter, r *http.Request) {
 	sourceID, err := getUserIDFromContext(r)
 	if err != nil {
-		logger.ErrorLogger.Println("Error handlingfollow/unfollow request:", err)
+		logger.ErrorLogger.Println("Error handling follow/unfollow request:", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -93,6 +93,36 @@ func HandleGetFollowing(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "data": followingUsers})
 }
 
+func HandleGetFollowStatus(w http.ResponseWriter, r *http.Request) {
+	// Get source user ID
+	sourceID, err := getUserIDFromContext(r)
+	if err != nil {
+		logger.ErrorLogger.Println("Error handling getFollowStatus request:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get target user ID
+	targetIDStr := r.URL.Query().Get("targetID")
+	targetID, err := strconv.Atoi(targetIDStr)
+	if err != nil {
+		logger.ErrorLogger.Println("Invalid target userID in getFollowStatus request:", err)
+		http.Error(w, "Invalid target userID", http.StatusBadRequest)
+		return
+	}
+
+	followStatus, err := sqlQueries.GetFollowStatus(sourceID, targetID) //0-pending, 1-accepted, 2-declined, 3-not following
+	if err != nil {
+		logger.ErrorLogger.Printf("Error getting follow status %d->%d, %v", sourceID, targetID, err)
+		http.Error(w, "Error getting follow status", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "data": followStatus})
+}
+
 // ------------------------- FOLLOW/UNFOLLOW REQUESTS -------------------------
 
 func handleFollowRequest(w http.ResponseWriter, r *http.Request, sourceID int, targetID int) {
@@ -135,7 +165,7 @@ func handleFollowRequest(w http.ResponseWriter, r *http.Request, sourceID int, t
 	//Send http response with according response message
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "success", "message": successResponseMsg})
+	json.NewEncoder(w).Encode(map[string]string{"status": "success", "data": successResponseMsg})
 }
 
 func handleUnfollowRequest(w http.ResponseWriter, r *http.Request, followerID int, followingID int) {
@@ -152,7 +182,7 @@ func handleUnfollowRequest(w http.ResponseWriter, r *http.Request, followerID in
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "success", "message": "Unfollow successful"})
+	json.NewEncoder(w).Encode(map[string]string{"status": "success", "data": "Unfollow successful"})
 }
 
 // ------------ FOLLOW REQUEST WS MESSAGES HANDLING ------------

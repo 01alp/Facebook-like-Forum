@@ -14,7 +14,6 @@ const AllUsers = () => {
   if (error) return <div>Error: {error.message}</div>;
 
   function handleClick(e) {
-    console.log("handle Click ", e)
     let id = e.target.id;
 
     if (id == '') {

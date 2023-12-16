@@ -49,49 +49,54 @@ export const WebSocketContextProvider = (props) => {
     newSocket.onerror = (err) => console.log('ws error');
 
     newSocket.onmessage = (e) => {
-      console.log('msg event: ', e);
-      console.log('msg event data : ', e.data, 'data finished');
-      const msgObj = JSON.parse(e.data);
-      console.log('ws receives msgObj: ', msgObj);
+      // console.log('msg event: ', e);
+      // console.log('msg event data : ', e.data, 'data finished');
+      const combinedMsgObj = JSON.parse(e.data);
 
-      if (msgObj.label === 'p-chat') {
-        console.log('ws receives private msg (wsctx): ', msgObj.message);
-        setNewPrivateMsgsObj(msgObj);
-      } else if (msgObj.label === 'g-chat') {
-        console.log('ws receives grp msg (wsctx): ', msgObj.message);
-        setNewGroupMsgsObj(msgObj);
-      } else if (msgObj.label === 'noti') {
-        if (
-          msgObj.type === 'follow-req' ||
-          msgObj.type.includes('event-notif') ||
-          msgObj.type === 'join-req' ||
-          msgObj.type === 'invitation'
-        ) {
-          console.log('ws receives noti (wsctx): ', msgObj);
-          console.log('ws receives noti type (wsctx): ', msgObj.type);
-          setNewNotiObj(msgObj);
-        } else if (msgObj.type === 'follow-req-reply') {
-          console.log('ws receives noti follow reply (wsctx): ', msgObj);
-          console.log('ws receives noti follow reply type (wsctx): ', msgObj.type);
-          console.log('ws receives noti follow reply accepted (wsctx): ', msgObj.accepted);
-          setNewNotiFollowReplyObj(msgObj);
-        } else if (msgObj.type === 'join-req-reply') {
-          console.log('ws receives noti join-req-reply (wsctx): ', msgObj);
-          console.log('ws receives noti join-req-reply type (wsctx): ', msgObj.type);
-          console.log('ws receives noti join-req-reply accepted (wsctx): ', msgObj.accepted);
-          setNewNotiJoinReplyObj(msgObj);
-        } else if (msgObj.type === 'invitation-reply') {
-          console.log('ws receives noti invitation-reply (wsctx): ', msgObj);
-          console.log('ws receives noti invitation-reply type (wsctx): ', msgObj.type);
-          console.log('ws receives noti invitation-reply accepted (wsctx): ', msgObj.accepted);
-          setNewNotiInvitationReplyObj(msgObj);
-        }
-      } else if (msgObj.label === 'online-status') {
-        console.log('ws receives online-status (wsctx): ', msgObj);
-        console.log('ws receives online-status onlineuserids (wsctx): ', msgObj.onlineuserids);
-        setNewOnlineStatusObj(msgObj);
-        usersCtx.onNewUserReg();
-      }
+      if (combinedMsgObj.messages && Array.isArray(combinedMsgObj.messages)) {
+        combinedMsgObj.messages.forEach((msgObj) => {
+          console.log("New ws msg: ", msgObj)
+
+          if (msgObj.label === 'p-chat') {
+            console.log('ws receives private msg (wsctx): ', msgObj.message);
+            setNewPrivateMsgsObj(msgObj);
+          } else if (msgObj.label === 'g-chat') {
+            console.log('ws receives grp msg (wsctx): ', msgObj.message);
+            setNewGroupMsgsObj(msgObj);
+          } else if (msgObj.label === 'noti') {
+            if (
+              msgObj.type === 'follow-req' ||
+              msgObj.type.includes('event-notif') ||
+              msgObj.type === 'join-req' ||
+              msgObj.type === 'invitation'
+            ) {
+              console.log('ws receives noti (wsctx): ', msgObj);
+              console.log('ws receives noti type (wsctx): ', msgObj.type);
+              setNewNotiObj(msgObj);
+            } else if (msgObj.type === 'followRequest') {
+              console.log('ws receives noti follow reply (wsctx): ', msgObj);
+              console.log('ws receives noti follow reply type (wsctx): ', msgObj.type);
+              console.log('ws receives noti follow reply accepted (wsctx): ', msgObj.accepted);
+              setNewNotiFollowReplyObj(msgObj);
+            } else if (msgObj.type === 'join-req-reply') {
+              console.log('ws receives noti join-req-reply (wsctx): ', msgObj);
+              console.log('ws receives noti join-req-reply type (wsctx): ', msgObj.type);
+              console.log('ws receives noti join-req-reply accepted (wsctx): ', msgObj.accepted);
+              setNewNotiJoinReplyObj(msgObj);
+            } else if (msgObj.type === 'invitation-reply') {
+              console.log('ws receives noti invitation-reply (wsctx): ', msgObj);
+              console.log('ws receives noti invitation-reply type (wsctx): ', msgObj.type);
+              console.log('ws receives noti invitation-reply accepted (wsctx): ', msgObj.accepted);
+              setNewNotiInvitationReplyObj(msgObj);
+            }
+          } else if (msgObj.label === 'online-status') {
+            console.log('ws receives online-status (wsctx): ', msgObj);
+            console.log('ws receives online-status onlineuserids (wsctx): ', msgObj.onlineuserids);
+            setNewOnlineStatusObj(msgObj);
+            usersCtx.onNewUserReg();
+          }
+        });
+      };
     };
 
     return () => {
