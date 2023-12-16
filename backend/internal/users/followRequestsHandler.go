@@ -10,6 +10,7 @@ import (
 	"social-network/internal/sqlQueries"
 	"social-network/internal/structs"
 	"social-network/internal/websocket"
+	"strconv"
 	"strings"
 )
 
@@ -41,20 +42,25 @@ func HandleFollowOrUnfollowRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleGetFollowers(w http.ResponseWriter, r *http.Request) {
-	//Get session userID from context
-	userID, err := getUserIDFromContext(r)
+	// Get userID from the query parameters
+	userIDStr := r.URL.Query().Get("userID")
+	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		logger.ErrorLogger.Println("Error handling GetFollowers request:", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.ErrorLogger.Println("Invalid userID in the request:", err)
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
 
+	fmt.Printf("\n**********followers function called for userID %d ************\n", userID)
+
 	followers, err := sqlQueries.GetUserFollowers(userID)
 	if err != nil {
-		logger.ErrorLogger.Println("Error getting followers for", userID, err)
+		logger.ErrorLogger.Println("Error getting followers for userID", userID, err)
 		http.Error(w, "Error getting followers", http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("Followers count for userID %d is %v", userID, len(followers))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -62,20 +68,25 @@ func HandleGetFollowers(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleGetFollowing(w http.ResponseWriter, r *http.Request) {
-	//Get session userID from context
-	userID, err := getUserIDFromContext(r)
+	// Get userID from the query parameters
+	userIDStr := r.URL.Query().Get("userID")
+	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		logger.ErrorLogger.Println("Error handling GetFollowing request:", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.ErrorLogger.Println("Invalid userID in the request:", err)
+		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
 
+	fmt.Printf("\n**********following function called for userID %d ************\n", userID)
+
 	followingUsers, err := sqlQueries.GetUserFollowing(userID)
 	if err != nil {
-		logger.ErrorLogger.Println("Error getting following uses for", userID, err)
-		http.Error(w, "Error getting following", http.StatusInternalServerError)
+		logger.ErrorLogger.Println("Error getting following users for userID", userID, err)
+		http.Error(w, "Error getting following users", http.StatusInternalServerError)
 		return
 	}
+
+	fmt.Printf("Following count for userID %d is %v", userID, len(followingUsers))
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -85,6 +96,7 @@ func HandleGetFollowing(w http.ResponseWriter, r *http.Request) {
 // ------------------------- FOLLOW/UNFOLLOW REQUESTS -------------------------
 
 func handleFollowRequest(w http.ResponseWriter, r *http.Request, sourceID int, targetID int) {
+	fmt.Println("handleFollowRequest called")
 	publicProfile, err := sqlQueries.GetProfileVisibility(targetID) // 1-public, 0-private
 	if err != nil {
 		logger.ErrorLogger.Printf("Error with user %d trying to follow %d: %v", sourceID, targetID, err)
@@ -206,7 +218,9 @@ func (s *Service) SendPendingFollowRequests(targetID int) {
 // -------------------------------- UTIL FUNCS --------------------------------
 
 func getUserIDFromContext(r *http.Request) (int, error) {
+
 	val := r.Context().Value("userID")
+	fmt.Println("this is the id of the user ", val)
 	userID, ok := val.(int)
 	if !ok || userID == 0 {
 		return 0, errors.New("invalid user ID in context")

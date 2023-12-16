@@ -7,6 +7,10 @@ export const FollowingContext = React.createContext({
   setFollowing: () => {},
   followingChat: [],
   getFollowing: () => {},
+  followers: [],
+  setFollowers: () => {},
+  followersChat: [],
+  getFollowers: () => {},
   requestToFollow: (followUser) => {},
   follow: (followUser) => {},
   unfollow: (unfollowUser) => {},
@@ -15,12 +19,14 @@ export const FollowingContext = React.createContext({
 
 export const FollowingContextProvider = (props) => {
   const selfId = localStorage.getItem('user_id');
-  const followingUrl = `http://localhost:8080/getFollowing?id=${selfId}`; //NOTE: userID not needed, server checks ID from session
-
+  const followingUrl = `http://localhost:8080/getFollowing?userId=${selfId}`; //NOTE: userID not needed, server checks ID from session
+  const followersUrl = `http://localhost:8080/getFollowers?userId=${selfId}`; //NOTE: userID not needed, server checks ID from session
   const [following, setFollowing] = useState([]);
+  const [followers, setFollowers] = useState([]);
   const [followingChat, setFollowingChat] = useState([]);
   const wsCtx = useContext(WebSocketContext);
   const usersCtx = useContext(UsersContext);
+
   // get following from db
   const getFollowingHandler = () => {
     fetch(followingUrl, {
@@ -41,64 +47,127 @@ export const FollowingContextProvider = (props) => {
       .catch((err) => console.log('Error fetching following:', err));
   };
 
-  const requestToFollowHandler = (followUser) => {
+  // get follower from db
+  const getFollowerHandler = () => {
+    fetch(followersUrl, {
+      credentials: 'include',
+    })
+      .then((resp) => {
+        if (!resp.ok) {
+          throw new Error(`HTTP error - status: ${resp.status}`);
+        }
+        return resp.json();
+      })
+      .then((data) => {
+        console.log('followersArr (context): ', data);
+        let [followersArr] = Object.values(data);
+        setFollowers([...new Set(followersArr)]);
+        localStorage.setItem('follower', JSON.stringify(followersArr));
+      })
+      .catch((err) => console.log('Error fetching followers:', err));
+  };
+
+  const requestToFollowHandler = async (followUser, follow) => {
     console.log('request to follow (context): ', followUser.id);
 
-    const followPayloadObj = {};
-    followPayloadObj['label'] = 'noti';
-    followPayloadObj['id'] = Date.now();
-    followPayloadObj['type'] = 'follow-req';
-    followPayloadObj['sourceid'] = +selfId;
-    followPayloadObj['targetid'] = followUser.id;
-    followPayloadObj['createdat'] = Date.now().toString();
-    console.log('gonna send fol req : ', followPayloadObj);
-    if (wsCtx.websocket !== null) wsCtx.websocket.send(JSON.stringify(followPayloadObj));
-  };
+    const followPayloadObj = {
+      label: 'noti',
+      id: Date.now(),
+      type: 'follow-req',
+      sourceid: +selfId,
+      targetid: followUser.id,
+      createdat: Date.now().toString(),
+    };
+    console.log('gonna send fol req: ', followPayloadObj);
 
-  const followHandler = (followUser) => {
-    if (following && following.length !== 0) {
-      // not empty
-      setFollowing((prevFollowing) => [...new Set(prevFollowing), followUser]);
-      followUser['chat_noti'] = false; // add noti to followUser
-      setFollowingChat((prevFollowingChat) => [...new Set(prevFollowingChat), followUser]);
+    try {
+      const tempurl = `http://localhost:8080/followOrUnfollowRequest?id=${selfId}`;
+      const response = await fetch(tempurl, {
+        credentials: 'include',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          Follow: follow, // Set to true for follow, false for unfollow
+          TargetID: followUser.id,
+        }),
+      });
 
-      const storedFollowing = JSON.parse(localStorage.getItem('following'));
-      const curFollowing = [...storedFollowing, followUser];
-      localStorage.setItem('following', JSON.stringify(curFollowing));
-    } else {
-      setFollowing([followUser]);
-      followUser['chat_noti'] = false; // add noti to followUser
-      setFollowingChat([followUser]);
-      localStorage.setItem('following', JSON.stringify([followUser]));
+      if (!response.ok) {
+        throw new Error('Follow/unfollow request failed');
+      }
+
+      // Handle success if needed
+      console.log('Follow/unfollow request successful');
+    } catch (error) {
+      console.error('Error sending follow/unfollow request:', error);
+      // Handle error
     }
-    console.log('locally stored following (fol)', JSON.parse(localStorage.getItem('following')));
   };
 
-  const unfollowHandler = (unfollowUser) => {
-    console.log('unfollowUser (folctx)', unfollowUser);
-    setFollowing((prevFollowing) => prevFollowing.filter((followingUser) => followingUser.id !== unfollowUser.id));
-    setFollowingChat((prevFollowingChat) => prevFollowingChat.filter((followingChatUser) => followingChatUser.id !== unfollowUser.id));
-    const storedFollowing = JSON.parse(localStorage.getItem('following'));
-    const curFollowing = storedFollowing.filter((followingUser) => followingUser.id !== unfollowUser.id);
-    localStorage.setItem('following', JSON.stringify(curFollowing));
-    console.log('locally stored following (unfol)', JSON.parse(localStorage.getItem('following')));
-  };
+  // const requestToFollowHandler = (followUser) => {
+  //   console.log('request to follow (context): ', followUser.id);
+
+  //   const followPayloadObj = {};
+  //   followPayloadObj['label'] = 'noti';
+  //   followPayloadObj['id'] = Date.now();
+  //   followPayloadObj['type'] = 'follow-req';
+  //   followPayloadObj['sourceid'] = +selfId;
+  //   followPayloadObj['targetid'] = followUser.id;
+  //   followPayloadObj['createdat'] = Date.now().toString();
+  //   console.log('gonna send fol req : ', followPayloadObj);
+  //   if (wsCtx.websocket !== null) wsCtx.websocket.send(JSON.stringify(followPayloadObj));
+  // };
+
+  // const followHandler = (followUser) => {
+  //   if (following && following.length !== 0) {
+  //     // not empty
+  //     setFollowing((prevFollowing) => [...new Set(prevFollowing), followUser]);
+  //     followUser['chat_noti'] = false; // add noti to followUser
+  //     setFollowingChat((prevFollowingChat) => [...new Set(prevFollowingChat), followUser]);
+
+  //     const storedFollowing = JSON.parse(localStorage.getItem('following'));
+  //     const curFollowing = [...storedFollowing, followUser];
+  //     localStorage.setItem('following', JSON.stringify(curFollowing));
+  //   } else {
+  //     setFollowing([followUser]);
+  //     followUser['chat_noti'] = false; // add noti to followUser
+  //     setFollowingChat([followUser]);
+  //     localStorage.setItem('following', JSON.stringify([followUser]));
+  //   }
+  //   console.log('locally stored following (fol)', JSON.parse(localStorage.getItem('following')));
+  // };
+
+  // const unfollowHandler = (unfollowUser) => {
+  //   console.log('unfollowUser (folctx)', unfollowUser);
+  //   setFollowing((prevFollowing) => prevFollowing.filter((followingUser) => followingUser.id !== unfollowUser.id));
+  //   setFollowingChat((prevFollowingChat) => prevFollowingChat.filter((followingChatUser) => followingChatUser.id !== unfollowUser.id));
+  //   const storedFollowing = JSON.parse(localStorage.getItem('following'));
+  //   const curFollowing = storedFollowing.filter((followingUser) => followingUser.id !== unfollowUser.id);
+  //   localStorage.setItem('following', JSON.stringify(curFollowing));
+  //   console.log('locally stored following (unfol)', JSON.parse(localStorage.getItem('following')));
+  // };
 
   useEffect(() => {
     getFollowingHandler();
+    getFollowerHandler();
     //getPrivateChatHandler();
   }, [usersCtx.users]);
 
   return (
     <FollowingContext.Provider
       value={{
+        followers: followers,
+        setFollowers: setFollowers,
         following: following,
         setFollowing: setFollowing,
         followingChat: followingChat,
         getFollowing: getFollowingHandler,
+        getFollowers: getFollowerHandler,
         requestToFollow: requestToFollowHandler,
-        follow: followHandler,
-        unfollow: unfollowHandler,
+        // follow: followHandler,
+        // unfollow: unfollowHandler,
       }}
     >
       {props.children}

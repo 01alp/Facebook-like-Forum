@@ -1,5 +1,4 @@
 import { useEffect, useState, useContext } from 'react';
-import useGet from '../fetch/useGet';
 import { FollowingContext } from '../store/following-context';
 import { UsersContext } from '../store/users-context';
 import { WebSocketContext } from '../store/websocket-context';
@@ -11,8 +10,7 @@ import JoinedGroup from '../group/JoinedGroup';
 import UserEvent from '../posts/UserEvent';
 
 function Profile({ userId }) {
-  const [followerOpen, setFollowerOpen] = useState(false);
-  const [followingOpen, setFollowingOpen] = useState(false);
+  console.log('***************   userId ', userId);
   const [followerData, setFollowerData] = useState([]);
   const [followingData, setFollowingData] = useState([]);
   const [isFollower, setIsFollower] = useState(false);
@@ -33,9 +31,50 @@ function Profile({ userId }) {
   const [requestedToFollow, setRequestedToFollow] = useState(false);
   const [isCloseFriend, setCloseFriend] = useState(false);
 
+  const getFollowerHandler = () => {
+    console.log('apis getting called');
+    fetch(`http://localhost:8080/getFollowers?userID=${userId}`, {
+      credentials: 'include',
+    })
+      .then((resp) => {
+        if (!resp.ok) {
+          throw new Error(`HTTP error - status: ${resp.status}`);
+        }
+        return resp.json();
+      })
+      .then((data) => {
+        console.log('followersArr (context): ', data);
+        setFollowerData(data.data);
+
+        const isFollowing = data.data.map((user) => user.id == userId);
+        setCurrentlyFollowing(isFollowing);
+      })
+      .catch((err) => console.log('Error fetching followers:', err));
+  };
+
+  const getFollowingHandler = () => {
+    fetch(`http://localhost:8080/getFollowing?userID=${userId}`, {
+      credentials: 'include',
+    })
+      .then((resp) => {
+        if (!resp.ok) {
+          throw new Error(`HTTP error - status: ${resp.status}`);
+        }
+        return resp.json();
+      })
+      .then((data) => {
+        console.log('followingArr (context): ', data);
+        setFollowingData(data.data);
+      })
+      .catch((err) => console.log('Error fetching following:', err));
+  };
+
   useEffect(() => {
+    getFollowerHandler();
+    getFollowingHandler();
+
     const foundUser = usersCtx.usersList.find((user) => user.id === +userId);
-    // console.log('usersList', foundUser);
+
     if (foundUser) {
       setTargetUser(foundUser); // Set targetUser state
       if (foundUser.public != 0) {
@@ -56,6 +95,16 @@ function Profile({ userId }) {
   useEffect(() => {
     localStorage.setItem('isChecked', isChecked);
   }, [isChecked]);
+
+  const followHandler = () => {
+    console.log('got the message  ');
+    followingCtx.requestToFollow(targetUser, true);
+  };
+
+  const unfollowHandler = () => {
+    console.log('got the message  ');
+    followingCtx.requestToFollow(targetUser, false);
+  };
 
   const setPublicityHandler = (e) => {
     const isPublic = !e.target.checked; // Determine the publicity based on the checkbox
@@ -96,7 +145,12 @@ function Profile({ userId }) {
   };
 
   useEffect(() => {
+    //console.log('target user : ', targetUser);
     if (targetUser) {
+      // console.log('usersList', foundUser);
+      // setFollowerData(followingCtx.followers);
+      //console.log('target user : ', targetUser);
+      // setFollowingData(followingCtx.following)
       if (targetUser.public == 0) {
         localStorage.setItem('isChecked', true);
       } else {
@@ -116,8 +170,7 @@ function Profile({ userId }) {
     if (currentlyFollowing) {
       followButton = (
         <div>
-          <button className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
-            {/* onClick={unfollowHandler} */}
+          <button onClick={unfollowHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
             -UnFollow
           </button>
         </div>
@@ -134,8 +187,7 @@ function Profile({ userId }) {
     } else {
       followButton = (
         <div>
-          <button className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
-            {/* onClick={followHandler} */}
+          <button onClick={followHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
             +Follow
           </button>
         </div>
@@ -153,14 +205,6 @@ function Profile({ userId }) {
       // onChange={closeFriendHandler}
     );
     closeFriendText = <span style={{ marginLeft: 5 }}>Ad to OnlyFans</span>;
-  }
-
-  function handleFollowerClick() {
-    setFollowerOpen(true);
-  }
-
-  function handleFollowingClick() {
-    setFollowingOpen(true);
   }
 
   return (
@@ -324,39 +368,11 @@ function Profile({ userId }) {
                   {/* Start: profile followers container */}
                   <div className="d-flex profileFollowers">
                     {/* Start: profile followers */}
-                    <div className="profileFollowers" style={{ marginRight: 10 }}>
-                      <button
-                        className="btn btn-primary"
-                        type="button"
-                        data-bs-target="#modal-1"
-                        data-bs-toggle="modal"
-                        onClick={handleFollowerClick}
-                      >
-                        <span className="followerCount" style={{ fontWeight: 'bold', marginRight: 5 }}>
-                          {followerData && followerData.length}
-                          {!followerData && 0}
-                        </span>
-                        {''}
-                        <span>Followers</span>
-                      </button>
-                    </div>
+                    <FollowerModal followers={followerData} />
                     {/* End: profile followers */}
+
                     {/* Start: profiles following */}
-                    <div className="profileFollowing">
-                      <button
-                        className="btn btn-primary"
-                        type="button"
-                        data-bs-target="#modal-2"
-                        data-bs-toggle="modal"
-                        onClick={handleFollowingClick}
-                      >
-                        <span className="followerCount" style={{ fontWeight: 'bold', marginRight: 5 }}>
-                          {followingData && followingData.length}
-                          {!followingData && 0}
-                        </span>{' '}
-                        <span>Following</span>
-                      </button>
-                    </div>
+                    <FollowingModal following={followingData} />
                     {/* End: profiles following */}
                   </div>
                   {/* End: profile followers container */}
@@ -386,12 +402,6 @@ function Profile({ userId }) {
                   {/* End: Onlyfans Container */}
                 </div>
               </div>
-              {followerOpen && followerData && (
-                <FollowerModal onClose={() => setFollowerOpen(false)} followers={followerData}></FollowerModal>
-              )}
-              {followingOpen && followingData && (
-                <FollowingModal onClose={() => setFollowingOpen(false)} following={followingData}></FollowingModal>
-              )}
             </div>
           </div>
         </div>

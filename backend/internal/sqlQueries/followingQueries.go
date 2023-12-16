@@ -10,11 +10,13 @@ import (
 func AddFollower(followerID int, followingID int, status int) error { //Status: 0-pending, 1-accepted, 2-declined
 	isFollowing, err := CheckIfFollowing(followerID, followingID)
 	if err != nil {
+		fmt.Println("error herer 1", err)
 		logger.ErrorLogger.Printf("Error adding user %d to follow %d:%v", followerID, followingID, err)
 		return err
 	}
 
 	if isFollowing {
+		fmt.Println("error herer 2", err)
 		logger.ErrorLogger.Printf("Error adding follower: user %d is already following %d:%v", followerID, followingID, err)
 		return fmt.Errorf("user %d is already following user %d", followerID, followingID)
 	}
@@ -22,6 +24,7 @@ func AddFollower(followerID int, followingID int, status int) error { //Status: 
 	query := `INSERT INTO user_followers (follower_id, following_id, status) VALUES (?, ?, ?)`
 	_, err = database.DB.Exec(query, followerID, followingID, status)
 	if err != nil {
+		fmt.Println("error herer 3", err)
 		return err
 	}
 
@@ -125,11 +128,12 @@ func GetUserFollowers(userID int) ([]structs.User, error) {
 	var followers []structs.User
 
 	query := `
-		SELECT uf.follower_id, u.id, u.username, u.first_name, u.last_name, u.email, 
-			u.about_me, u.birth_date, u.register_date, u.avatar, u.public 
-		FROM user_followers uf 
-		JOIN users u ON uf.follower_id = u.id 
-		WHERE uf.following_id = ? AND uf.status = 1;
+	SELECT u.id, u.username, u.first_name, u.last_name, u.email, 
+		u.about_me, u.birth_date, u.register_date, u.avatar, u.public 
+	FROM user_followers uf 
+	JOIN users u ON uf.follower_id = u.id 
+	WHERE uf.following_id = ? AND uf.status = 1;
+
 	`
 
 	rows, err := database.DB.Query(query, userID)
@@ -153,6 +157,8 @@ func GetUserFollowers(userID int) ([]structs.User, error) {
 		return nil, err
 	}
 
+	fmt.Printf("\n\n-->followers for user id: %+v is : %+v\n", userID, followers)
+
 	return followers, nil
 }
 
@@ -160,11 +166,12 @@ func GetUserFollowing(userID int) ([]structs.User, error) {
 	var followingUsers []structs.User
 
 	query := `
-		SELECT uf.following_id, u.id, u.username, u.first_name, u.last_name, u.email, 
-			u.about_me, u.birth_date, u.register_date, u.avatar, u.public 
-		FROM user_followers uf 
-		JOIN users u ON uf.following_id = u.id 
-		WHERE uf.follower_id = ? AND uf.status = 1;
+	SELECT u.id, u.username, u.first_name, u.last_name, u.email, 
+		u.about_me, u.birth_date, u.register_date, u.avatar, u.public 
+	FROM user_followers uf 
+	JOIN users u ON uf.following_id = u.id 
+	WHERE uf.follower_id = ? AND uf.status = 1;
+
 	`
 
 	rows, err := database.DB.Query(query, userID)
@@ -187,6 +194,7 @@ func GetUserFollowing(userID int) ([]structs.User, error) {
 		logger.ErrorLogger.Printf("Error scanning following users data for user %d: %v", userID, err)
 		return nil, err
 	}
+	fmt.Printf("\n\n--> followings : %+v\n", followingUsers)
 
 	return followingUsers, nil
 }
