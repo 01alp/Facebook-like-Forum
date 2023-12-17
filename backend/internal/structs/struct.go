@@ -62,7 +62,7 @@ type FollowRequest struct { //For http request client->server
 
 type FollowRequestReply struct { //For client->server response to ws msg follow request
 	RequesterID int  `json:"requesterid"`
-	Decision    bool `json:"decision"` //False to decline, true to accept
+	Decision    bool `json:"accepted"` //False to decline, true to accept
 }
 
 type UserFollowerStruct struct {

@@ -162,9 +162,14 @@ var messageHandlers = map[string]func(*Client, []byte){
 	config.WsMsgTypes.FOLLOW_REQ_REPLY:    handleFollowRequestReply,
 }
 
-func handleIncomingMessage(c *Client, messageType string, payload []byte) {
+func handleIncomingMessage(c *Client, messageType string, envelope structs.WSMessageEnvelope) {
 	if handler, ok := messageHandlers[messageType]; ok {
-		handler(c, payload)
+		payloadBytes, err := json.Marshal(envelope.Payload) //TODO: Could avoid remarshaling here, with changing the envelope struct payload type?
+		if err != nil {
+			logger.ErrorLogger.Println("Error re-marshaling payload for user:", c.ID, ":", err)
+			return
+		}
+		handler(c, payloadBytes)
 	} else {
 		handleUnknownMessageType(c, messageType)
 	}

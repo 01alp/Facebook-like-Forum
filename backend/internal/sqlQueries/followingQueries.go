@@ -150,6 +150,7 @@ func GetUserFollowers(userID int) ([]structs.User, error) {
 			logger.ErrorLogger.Printf("Error scanning follower data for user %d: %v", userID, err)
 			continue
 		}
+		SetAvatar(&user)
 		followers = append(followers, user)
 	}
 
@@ -157,8 +158,6 @@ func GetUserFollowers(userID int) ([]structs.User, error) {
 		logger.ErrorLogger.Printf("Error scanning followers data for user %d: %v", userID, err)
 		return nil, err
 	}
-
-	fmt.Printf("\n\n-->followers for user id: %+v is : %+v\n", userID, followers)
 
 	return followers, nil
 }
@@ -188,6 +187,7 @@ func GetUserFollowing(userID int) ([]structs.User, error) {
 			logger.ErrorLogger.Printf("Error scanning following user data for user %d: %v", userID, err)
 			continue
 		}
+		SetAvatar(&user)
 		followingUsers = append(followingUsers, user)
 	}
 
@@ -195,7 +195,6 @@ func GetUserFollowing(userID int) ([]structs.User, error) {
 		logger.ErrorLogger.Printf("Error scanning following users data for user %d: %v", userID, err)
 		return nil, err
 	}
-	fmt.Printf("\n\n--> followings : %+v\n", followingUsers)
 
 	return followingUsers, nil
 }

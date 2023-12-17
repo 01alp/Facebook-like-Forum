@@ -14,13 +14,17 @@ const AllUsers = () => {
   if (error) return <div>Error: {error.message}</div>;
 
   function handleClick(e) {
-    let id = e.target.id;
+    console.log("Click!", e);
 
-    if (id == '') {
-      id = e.target.parentElement.parentElement.id;
+    let targetElement = e.target.closest('[data-id]');
+
+    if (targetElement) {
+      let id = targetElement.getAttribute('data-id');
+      console.log(`Navigating to profile with ID: ${id}`);
+      navigate(`/profile/${id}`);
+    } else {
+      console.log("No valid target found for navigation.");
     }
-
-    navigate(`/profile/${id}`);
   }
   return (
     <div
@@ -38,11 +42,12 @@ const AllUsers = () => {
               className="d-flex align-items-xl-center userListContainer cursorPointer"
               style={{ margin: 5 }}
               key={user.id}
-              id={user.id}
+              data-id={user.id}
+              // id={user.id}
               onClick={handleClick}
             >
               <div className="avatarDiv">
-                <Avatar src={user.avatar} showStatus={true} alt="" width={'32px'} />
+                <Avatar id={user.id} src={user.avatar} showStatus={true} alt="" width={'32px'} />
               </div>
               <div>
                 <span className="cursor-pointer">{user.fname}</span>

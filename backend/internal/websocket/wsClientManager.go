@@ -113,7 +113,7 @@ func (c *Client) ReadPump() {
 		}
 
 		// Handle message
-		handleIncomingMessage(c, envelope.Type, message)
+		handleIncomingMessage(c, envelope.Type, envelope)
 	}
 }
 
