@@ -102,7 +102,34 @@ type AuthResponse struct {
 	Public  int    `json:"public"` //1-public, 0-private
 }
 
-// POSTS AND COMMENTS
+// ----------------------------------- CHAT -----------------------------------
+type ChatHistoryRequest struct {
+	RecipientID int  `json:"recipient_id"`
+	GroupChat   bool `json:"group_chat"`
+	//TODO: Receive msgs by bunch? Then last msg ID
+}
+
+type ChatHistoryReply struct {
+	Messages []ChatMessage `json:"messages"`
+}
+
+type ChatMessage struct {
+	ID              int    `json:"id"`
+	GroupChat       bool   `json:"group_chat"`
+	SenderID        int    `json:"sender_id"`
+	SenderFirstName string `json:"sender_fname,omitempty"`
+	UserRecipientID int    `json:"user_recipient_id,omitempty"`
+	GroupID         int    `json:"group_id,omitempty"`
+	Message         string `json:"message"`
+	CreatedAt       string `json:"createdat"`
+}
+
+type ChatMessageResponse struct {
+	Status  string      `json:"status"`
+	Message ChatMessage `json:"message"`
+}
+
+// ---------------------------- POSTS AND COMMENTS ----------------------------
 type PostStruct struct {
 	Id        int             `json:"id"`
 	Author    int             `json:"author"` // author uid

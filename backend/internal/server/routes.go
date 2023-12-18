@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"social-network/internal/auth"
+	"social-network/internal/chat"
 	"social-network/internal/cors"
 	"social-network/internal/groups"
 	"social-network/internal/logger"
@@ -67,6 +68,10 @@ func (s *Server) RegisterRoutes() {
 
 	//User chat:
 	mux.HandleFunc("/userChatMessage", Middleware(AuthMiddlewareHandler{Handler: userChat.HandleNewMessage, RequiresAuth: true}))
+
+	//Chat:
+	mux.HandleFunc("/getChatHistory", Middleware(AuthMiddlewareHandler{Handler: chat.HandleGetChatHistory, RequiresAuth: true}))
+	mux.HandleFunc("/chatMessage", Middleware(AuthMiddlewareHandler{Handler: chat.HandleNewMessage, RequiresAuth: true}))
 
 	// posts:
 	mux.HandleFunc("/newPost", Middleware(AuthMiddlewareHandler{Handler: posts.NewPostHandler, RequiresAuth: false}))

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { WebSocketContext } from './websocket-context';
 import { UsersContext } from './users-context';
 
@@ -19,8 +19,8 @@ export const FollowingContext = React.createContext({
 
 export const FollowingContextProvider = (props) => {
   const selfId = localStorage.getItem('user_id');
-  const followingUrl = `http://localhost:8080/getFollowing?userId=${selfId}`;
-  const followersUrl = `http://localhost:8080/getFollowers?userId=${selfId}`;
+  const followingUrl = `http://localhost:8080/getFollowing?userID=${selfId}`;
+  const followersUrl = `http://localhost:8080/getFollowers?userID=${selfId}`;
   const [following, setFollowing] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [followingChat, setFollowingChat] = useState([]);
@@ -28,7 +28,7 @@ export const FollowingContextProvider = (props) => {
   const usersCtx = useContext(UsersContext);
 
   // get following from db
-  const getFollowingHandler = () => {
+  const getFollowingHandler = useCallback(() => {
     fetch(followingUrl, {
       credentials: 'include',
     })
@@ -45,10 +45,10 @@ export const FollowingContextProvider = (props) => {
         localStorage.setItem('following', JSON.stringify(followingArr));
       })
       .catch((err) => console.log('Error fetching following:', err));
-  };
+  }, []);
 
   // get follower from db
-  const getFollowerHandler = () => {
+  const getFollowerHandler = useCallback(() => {
     fetch(followersUrl, {
       credentials: 'include',
     })
@@ -65,7 +65,7 @@ export const FollowingContextProvider = (props) => {
         localStorage.setItem('follower', JSON.stringify(followersArr));
       })
       .catch((err) => console.log('Error fetching followers:', err));
-  };
+  }, []);
 
   const requestToFollowOrUnfollowHandler = async (followUser, follow) => {
     console.log('request to follow (context): ', followUser.id);

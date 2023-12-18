@@ -208,10 +208,10 @@ func attemptToSendFollowRequest(targetID int, sourceID int) {
 }
 
 // for handling ws accept/decline decision for follow request from user
-func (s *Service) HandleFollowRequestReply(followReqSenderID int, followReqReceiverID int, decision bool) error {
-	decisionInt := 0
-	if decision {
-		decisionInt = 1
+func (s *Service) HandleFollowRequestReply(followReqSenderID int, followReqReceiverID int, accepted bool) error {
+	decisionInt := 1 // 1: accepted in db
+	if !accepted {
+		decisionInt = 2 // 2: declined in db
 	}
 
 	err := sqlQueries.ChangeFollowStatus(followReqSenderID, followReqReceiverID, decisionInt)

@@ -5,6 +5,7 @@ import { WebSocketContextProvider } from '../store/websocket-context';
 import Layout from '../layouts/Layout';
 import { FollowingContextProvider } from '../store/following-context';
 import { PostsContextProvider } from '../store/posts-context';
+import { ChatProvider } from '../store/chat-context';
 
 const Root = () => {
   return (
@@ -13,9 +14,11 @@ const Root = () => {
         <WebSocketContextProvider>
           <FollowingContextProvider>
             <PostsContextProvider>
-              <Layout>
-                <Outlet />
-              </Layout>
+              <ChatProvider>
+                <Layout>
+                  <Outlet />
+                </Layout>
+              </ChatProvider>
             </PostsContextProvider>
           </FollowingContextProvider>
         </WebSocketContextProvider>

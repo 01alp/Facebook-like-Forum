@@ -61,7 +61,6 @@ export const WebSocketContextProvider = (props) => {
 
           switch (msgObj.type) {
             case ('followRequest'):
-              console.log("Setting new noti obj");
               setNewNotiObj({
                 id: 'follow_req_' + msgObj.payload.id, //Using source userID as id/key, because it's always unique
                 type: 'follow-req',

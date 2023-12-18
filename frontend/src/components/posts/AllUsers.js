@@ -14,8 +14,6 @@ const AllUsers = () => {
   if (error) return <div>Error: {error.message}</div>;
 
   function handleClick(e) {
-    console.log("Click!", e);
-
     let targetElement = e.target.closest('[data-id]');
 
     if (targetElement) {
