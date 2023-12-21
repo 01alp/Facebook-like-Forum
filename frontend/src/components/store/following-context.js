@@ -98,13 +98,12 @@ export const FollowingContextProvider = (props) => {
         throw new Error('Follow/unfollow request failed');
       }
 
-      const responseData = await response.json()
+      const responseData = await response.json();
       console.log('Follow/unfollow request successful');
-      return responseData.data
-
+      return responseData.data;
     } catch (error) {
       console.error('Error sending follow/unfollow request:', error);
-      return null
+      return null;
     }
   };
 

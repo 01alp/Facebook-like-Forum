@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { UsersContext } from './users-context';
+import { ChatContext } from './chat-context';
 
 export const WebSocketContext = React.createContext({
   websocket: null,
@@ -20,7 +21,10 @@ export const WebSocketContext = React.createContext({
 });
 
 export const WebSocketContextProvider = (props) => {
+  const { currentChat } = useContext(ChatContext);
+
   const [socket, setSocket] = useState(null);
+  const [newChatMsgObj, setNewChatMsgObj] = useState(null);
   const [newPrivateMsgsObj, setNewPrivateMsgsObj] = useState(null);
   const [newGroupMsgsObj, setNewGroupMsgsObj] = useState(null);
 
@@ -41,6 +45,7 @@ export const WebSocketContextProvider = (props) => {
     newSocket.onopen = () => {
       console.log('ws connected');
       setSocket(newSocket);
+      sendWsReadyMessage(newSocket);
     };
 
     newSocket.onclose = () => {
@@ -50,9 +55,17 @@ export const WebSocketContextProvider = (props) => {
 
     newSocket.onerror = (err) => console.log('ws error');
 
-    newSocket.onmessage = (e) => {
-      // console.log('msg event: ', e);
-      // console.log('msg event data : ', e.data, 'data finished');
+    newSocket.onmessage = (message) => console.log(message);
+
+    return () => {
+      newSocket.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (e) => {
       const combinedMsgObj = JSON.parse(e.data);
 
       if (combinedMsgObj.messages && Array.isArray(combinedMsgObj.messages)) {
@@ -68,6 +81,7 @@ export const WebSocketContextProvider = (props) => {
                 targetid: Number(currUserId),
               });
               break;
+
             case ('onlineUsersList'):
               if (msgObj.payload !== null) {
                 let onlineIds = [];
@@ -75,75 +89,71 @@ export const WebSocketContextProvider = (props) => {
                 setNewOnlineStatusObj({onlineUserIds: onlineIds});
               }
               break;
+
             case ('userOnline'):
               setNewOnlineStatusObj({userOnline: msgObj.payload.id});
               break;
+
             case ('userOffline'):
               setNewOnlineStatusObj({userOffline: msgObj.payload.id});
               break;
+
+            case ('chatMessages'):
+              msgObj.payload.forEach((message) => {
+                if (isMessageForCurrentChat(message, currentChat)) {
+                  setNewChatMsgObj(message);
+                } else {
+                  setNewNotiObj({
+                    id: 'chat_msg_' + message.id,
+                    type: 'chat-msg',
+                    sourceid: message.sender_id,
+                    targetid: Number(currUserId),
+                  }); 
+                }
+              });
+              sendChatMessagesReply(msgObj.payload);
+              break;
+
             default: 
               console.log('Received unknown type ws message');
               break;
           }
-          // if (msgObj.type === 'followRequest') {
-          //   setNewNotiObj({
-          //     id: 'follow_req_' + msgObj.payload.id, //Using source userID as id/key, because it's always unique
-          //     type: 'follow-req',
-          //     sourceid: msgObj.payload.id,
-          //     targetid: Number(currUserId),
-          //   });
-          // }
-          // if (msgObj.label === 'p-chat') {
-          //   console.log('ws receives private msg (wsctx): ', msgObj.message);
-          //   setNewPrivateMsgsObj(msgObj);
-          // } else if (msgObj.label === 'g-chat') {
-          //   console.log('ws receives grp msg (wsctx): ', msgObj.message);
-          //   setNewGroupMsgsObj(msgObj);
-          // } else if (msgObj.label === 'noti') {
-          //   if (
-          //     msgObj.type === 'follow-req' ||
-          //     msgObj.type.includes('event-notif') ||
-          //     msgObj.type === 'join-req' ||
-          //     msgObj.type === 'invitation'
-          //   ) {
-          //     console.log('ws receives noti (wsctx): ', msgObj);
-          //     console.log('ws receives noti type (wsctx): ', msgObj.type);
-          //     setNewNotiObj(msgObj);
-          //   } else if (msgObj.type === 'followRequest') {
-          //     console.log('ws receives noti follow reply (wsctx): ', msgObj);
-          //     console.log('ws receives noti follow reply type (wsctx): ', msgObj.type);
-          //     console.log('ws receives noti follow reply accepted (wsctx): ', msgObj.accepted);
-          //     setNewNotiFollowReplyObj(msgObj);
-          //   } else if (msgObj.type === 'join-req-reply') {
-          //     console.log('ws receives noti join-req-reply (wsctx): ', msgObj);
-          //     console.log('ws receives noti join-req-reply type (wsctx): ', msgObj.type);
-          //     console.log('ws receives noti join-req-reply accepted (wsctx): ', msgObj.accepted);
-          //     setNewNotiJoinReplyObj(msgObj);
-          //   } else if (msgObj.type === 'invitation-reply') {
-          //     console.log('ws receives noti invitation-reply (wsctx): ', msgObj);
-          //     console.log('ws receives noti invitation-reply type (wsctx): ', msgObj.type);
-          //     console.log('ws receives noti invitation-reply accepted (wsctx): ', msgObj.accepted);
-          //     setNewNotiInvitationReplyObj(msgObj);
-          //   }
-          // } else if (msgObj.label === 'online-status') {
-          //   console.log('ws receives online-status (wsctx): ', msgObj);
-          //   console.log('ws receives online-status onlineuserids (wsctx): ', msgObj.onlineuserids);
-          //   setNewOnlineStatusObj(msgObj);
-          //   usersCtx.onNewUserReg();
-          // }
         });
       };
     };
 
+    socket.addEventListener('message', handleMessage);
+
     return () => {
-      newSocket.close();
+      socket.removeEventListener('message', handleMessage);
     };
-  }, []);
+
+  }, [currentChat, socket]);
+
+  const isMessageForCurrentChat = (message, currentChat) => {
+    return (message.group_chat === currentChat.groupChat) && 
+           (message.group_chat ? message.group_id === currentChat.recipientId 
+                               : message.sender_id === currentChat.recipientId);
+  };
+
+  const sendChatMessagesReply = (receivedMessages) => {
+    const replyMsg = {
+      type: "chatMessagesReply",
+      payload: receivedMessages
+    };
+    socket.send(JSON.stringify(replyMsg));
+  }
+
+  const sendWsReadyMessage = (socket) => { // To notify server that ready to receive ws messages
+    socket.send(JSON.stringify({type: "readyForWsMessages"}));
+  }
 
   return (
     <WebSocketContext.Provider
       value={{
         websocket: socket,
+        newChatMsgObj: newChatMsgObj,
+        setNewChatMsgObj: setNewChatMsgObj,
         newPrivateMsgsObj: newPrivateMsgsObj,
         setNewPrivateMsgsObj: setNewPrivateMsgsObj,
         newGroupMsgsObj: newGroupMsgsObj,

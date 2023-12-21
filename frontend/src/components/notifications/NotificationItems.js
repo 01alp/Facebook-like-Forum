@@ -2,6 +2,7 @@ import { useContext } from 'react';
 import { UsersContext } from '../store/users-context';
 import { useNavigate } from 'react-router-dom';
 import FollowNotif from './FollowNotif';
+import ChatNotif from './ChatNotif';
 
 const NotificationItems = (props) => {
   const navigate = useNavigate();
@@ -10,8 +11,24 @@ const NotificationItems = (props) => {
   console.log(usersCtx.usersList)
   const sourceUser = usersCtx.usersList.find((user) => user.id === props.sourceId);
 
-  console.log('props.grouptitle (item)', props);
-  return <div>{props.type === 'follow-req' && <FollowNotif srcUser={sourceUser} targetId={props.targetId} />}</div>;
+  const removeNotiHandler = () => {
+    console.log("Removing noti");
+    props.onRemoveNotification(props.id);
+  };
+
+  let notificationContent;
+  switch (props.type) {
+    case 'follow-req':
+      notificationContent = <FollowNotif srcUser={sourceUser} removeNoti={removeNotiHandler}/>;
+      break;
+    case 'chat-msg':
+      notificationContent = <ChatNotif srcUser={sourceUser} removeNoti={removeNotiHandler}/>; //TODO: For group chat noti needs group info. Perhaps separate "private-chat-msg" and "group-chat-msg" notis?
+      break;
+    default:
+      notificationContent = <div>Unknown notification type</div>;
+  }
+
+  return <div>{notificationContent}</div>
 };
 
 export default NotificationItems;

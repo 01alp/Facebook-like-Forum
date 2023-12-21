@@ -42,7 +42,7 @@ export const PostsContextProvider = (props) => {
       },
     };
     try {
-      const resp = await fetch(postsCommentsUrl + `?id=${userId}`, options);
+      const resp = await fetch(postsCommentsUrl + `?userID=${userId}`, options);
 
       if (resp.ok) {
         const data = await resp.json();

@@ -11,6 +11,7 @@ const FollowNotif = (props) => {
 
   const acceptFollowReqHandler = () => {
     setIsVisible(false);
+    props.removeNoti();
 
     console.log('request accepted: ');
     const notiReplyPayloadObj = {};
@@ -32,6 +33,7 @@ const FollowNotif = (props) => {
   };
   const declineFollowReqHandler = () => {
     setIsVisible(false);
+    props.removeNoti();
 
     console.log('request declined: ');
     const notiReplyPayloadObj = {};

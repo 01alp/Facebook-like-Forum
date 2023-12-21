@@ -49,7 +49,7 @@ const NotificationsCenter = (props) => {
         console.log('notification already exists: ', wsCtx.newNotiObj.id);
       }
 
-      wsCtx.newNotiObj = null; // Clear ws context new noti after receiving it
+      wsCtx.setNewNotiObj(null); // Clear ws context new noti after receiving it
 
       setShowNotiBadge(true);
     }

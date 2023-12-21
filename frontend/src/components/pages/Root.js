@@ -11,17 +11,17 @@ const Root = () => {
   return (
     <>
       <UsersContextProvider>
-        <WebSocketContextProvider>
-          <FollowingContextProvider>
-            <PostsContextProvider>
-              <ChatProvider>
+        <ChatProvider>
+          <WebSocketContextProvider>
+            <FollowingContextProvider>
+              <PostsContextProvider>
                 <Layout>
                   <Outlet />
                 </Layout>
-              </ChatProvider>
-            </PostsContextProvider>
-          </FollowingContextProvider>
-        </WebSocketContextProvider>
+              </PostsContextProvider>
+            </FollowingContextProvider>
+          </WebSocketContextProvider>
+        </ChatProvider>
       </UsersContextProvider>
     </>
   );

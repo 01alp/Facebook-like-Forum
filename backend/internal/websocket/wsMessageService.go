@@ -11,8 +11,8 @@ import (
 
 // ---------------------------- INITALIZE SERVICES ----------------------------
 
-type UserChatService interface {
-	ConfirmMessagesDelivery(messageIDs []int) error
+type ChatService interface {
+	ConfirmMessagesDelivery(userID int, messageIDs []int) error
 	SendPendingChatMessages(userID int)
 }
 
@@ -21,15 +21,21 @@ type UserService interface {
 	SendPendingFollowRequests(targetID int)
 }
 
-var userChatService UserChatService
+var chatService ChatService
 var userService UserService
 
-func Initialize(ucs UserChatService, us UserService) {
-	userChatService = ucs
+func Initialize(us UserService, cs ChatService) {
+	chatService = cs
 	userService = us
 }
 
-// ------------------------- CLIENT STATE ANNOUNCMENTS ------------------------
+// --------------------------- ANNOUNCMENTS TO CLIENT -------------------------
+
+func sendClientSyncMessages(c *Client, readyMsg []byte) {
+	sendOnlineUsersList(c.ID)
+	userService.SendPendingFollowRequests(c.ID)
+	chatService.SendPendingChatMessages(c.ID)
+}
 
 func sendOnlineUsersList(targetID int) {
 	var onlineUsersIDs []int
@@ -158,8 +164,9 @@ func SendErrorMessage(userID int, errMsg string) {
 // ---------------------------- RECEIVING MESSAGES ----------------------------
 
 var messageHandlers = map[string]func(*Client, []byte){
-	config.WsMsgTypes.USERCHAT_MSGS_REPLY: handleChatMessagesDelivered,
-	config.WsMsgTypes.FOLLOW_REQ_REPLY:    handleFollowRequestReply,
+	config.WsMsgTypes.CLIENT_WS_READY:  sendClientSyncMessages,
+	config.WsMsgTypes.CHAT_MSGS_REPLY:  handleChatMessagesDelivered,
+	config.WsMsgTypes.FOLLOW_REQ_REPLY: handleFollowRequestReply,
 }
 
 func handleIncomingMessage(c *Client, messageType string, envelope structs.WSMessageEnvelope) {
@@ -185,24 +192,24 @@ func handleUnknownMessageType(c *Client, messageType string) {
 }
 
 func handleChatMessagesDelivered(c *Client, payload []byte) {
-	var userMessages []structs.UserMessageStruct
-	err := json.Unmarshal(payload, &userMessages)
+	var messages []structs.ChatMessage
+	err := json.Unmarshal(payload, &messages)
 	if err != nil {
-		logger.ErrorLogger.Printf("Error unmarshaling user chat messages: %v\n", err)
-		respondToClient(c, config.WsMsgTypes.MSG_HANDLING_ERROR, "error", map[string]string{"error": "Failed to unmarshal payload for userchat message delivery confirmation"})
+		logger.ErrorLogger.Printf("Error unmarshaling chat messages: %v\n", err)
+		respondToClient(c, config.WsMsgTypes.MSG_HANDLING_ERROR, "error", map[string]string{"error": "Failed to unmarshal payload for chat messages delivery confirmation"})
 		return
 	}
 
 	// Extract message IDs from the messages
 	var messageIDs []int
-	for _, msg := range userMessages {
-		messageIDs = append(messageIDs, msg.Id)
+	for _, msg := range messages {
+		messageIDs = append(messageIDs, msg.ID)
 	}
 
-	err = userChatService.ConfirmMessagesDelivery(messageIDs)
+	err = chatService.ConfirmMessagesDelivery(c.ID, messageIDs)
 	if err != nil {
-		logger.ErrorLogger.Printf("Error in confirming userChat messages delivery: %v\n", err)
-		respondToClient(c, config.WsMsgTypes.MSG_HANDLING_ERROR, "error", map[string]string{"error": "Failed to confirm userChat message delivery"})
+		logger.ErrorLogger.Printf("Error in confirming chat messages delivery: %v\n", err)
+		respondToClient(c, config.WsMsgTypes.MSG_HANDLING_ERROR, "error", map[string]string{"error": "Failed to confirm chat message delivery"})
 		return
 	}
 }

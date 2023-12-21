@@ -45,7 +45,6 @@ func SetSession(w http.ResponseWriter, userID int, cookieName string) *http.Cook
 	//Add session to database
 	err := sqlQueries.InsertNewSession(userID, cookie.Value, cookie.Expires)
 	if err != nil {
-		//TODO: Handle situation, where previous/expired cookie exists in sessions table. Currently new session rejected.
 		logger.ErrorLogger.Println("Failed to insert session into DB:", err)
 		return nil
 	}

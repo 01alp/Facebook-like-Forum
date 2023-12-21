@@ -66,13 +66,5 @@ func UpgradeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("new client started")
 	manager.addClient(userID, client)
 
-	syncClientState(userID)
-
 	logger.InfoLogger.Println("User with id ", userID, "upgraded to ws connection")
-}
-
-func syncClientState(userID int) {
-	sendOnlineUsersList(userID)
-	userChatService.SendPendingChatMessages(userID) // Send 1-1 chat messages which user has received while offline
-	userService.SendPendingFollowRequests(userID)
 }

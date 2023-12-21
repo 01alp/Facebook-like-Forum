@@ -67,6 +67,70 @@ func CheckIfFollowing(followerID int, followingID int) (bool, error) {
 	return isFollowing, nil
 }
 
+// returns userids of users that are followed by the user with the given id
+// made this func so dont have to make a request to db for each post (more efficient I think)
+func GetFollowedUsers(userID int) ([]int, error) {
+	var followers []int
+
+	query := "SELECT following_id FROM user_followers WHERE follower_id = ? AND status = 1"
+	rows, err := database.DB.Query(query, userID)
+	if err != nil {
+		logger.ErrorLogger.Printf("Error getting followers for user %d: %v", userID, err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var followerID int
+		err := rows.Scan(&followerID)
+		if err != nil {
+			logger.ErrorLogger.Printf("Error scanning follower ID for user %d: %v", userID, err)
+			continue
+		}
+		followers = append(followers, followerID)
+	}
+	return followers, nil
+}
+
+// not in use atm maybe dont need
+func CheckCloseFriends(sourceID int, targetID int) (bool, error) {
+	var isCloseFriend bool
+
+	query := "SELECT EXISTS(SELECT 1 FROM close_friends WHERE source_id = ? AND friend_id = ?)"
+	err := database.DB.QueryRow(query, sourceID, targetID).Scan(&isCloseFriend)
+	if err != nil {
+		logger.ErrorLogger.Printf("Error checking if user %d is following %d:%v", sourceID, targetID, err)
+		return false, err
+	}
+	return isCloseFriend, nil
+}
+
+// get all users that have set targetID as a close friend
+// made this func so dont have to make a request to db for each post
+func GetCloseFriends(targetID int) ([]int, error) {
+	var closeFriends []int
+
+	// query for all users that have souceID as a close friend
+	query := "SELECT source_id FROM close_friends WHERE friend_id= ?"
+	rows, err := database.DB.Query(query, targetID)
+	if err != nil {
+		logger.ErrorLogger.Printf("Error getting close friends for user %d: %v", targetID, err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var sourceID int
+		err := rows.Scan(&sourceID)
+		if err != nil {
+			logger.ErrorLogger.Printf("Error scanning close friend ID for user %d: %v", targetID, err)
+			continue
+		}
+		closeFriends = append(closeFriends, sourceID)
+	}
+	return closeFriends, nil
+}
+
 func ChangeFollowStatus(followerID int, followingID int, status int) error {
 	isFollowing, err := CheckIfFollowing(followerID, followingID)
 	if err != nil {

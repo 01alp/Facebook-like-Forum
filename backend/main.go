@@ -3,17 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
+	"social-network/internal/chat"
 	"social-network/internal/logger"
 	"social-network/internal/server"
-	"social-network/internal/userChat"
 	"social-network/internal/users"
 	"social-network/internal/websocket"
 )
 
 func initServices() {
-	userChatService := &userChat.Service{}
+	chatService := &chat.Service{}
 	userService := &users.Service{}
-	websocket.Initialize(userChatService, userService)
+	websocket.Initialize(userService, chatService)
 }
 
 func main() {

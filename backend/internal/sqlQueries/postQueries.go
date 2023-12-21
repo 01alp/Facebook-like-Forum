@@ -5,8 +5,19 @@ import (
 	"social-network/internal/structs"
 )
 
-func GetPosts(userId int) ([]structs.PostStruct, error) {
-	query := "SELECT * FROM posts"
+func GetPosts() ([]structs.PostStruct, error) {
+
+	// query := `
+	// 		SELECT p.id, p.author_id, p.message, p.image, p.created_at, p.privacy
+	// 		FROM posts p
+	// 		LEFT JOIN user_followers uf ON p.author_id = uf.following_id
+	// 		WHERE
+	// 			p.privacy = 0
+	// 			OR (p.privacy = 1 AND (uf.follower_id = ? OR p.author_id = ?) AND uf.status = 1)
+	// 			OR (p.privacy = 1 AND p.author_id = ?)
+	// 		ORDER BY p.created_at DESC;
+	// `
+	query := `SELECT * FROM posts`
 	rows, err := database.DB.Query(query)
 	if err != nil {
 		return nil, err

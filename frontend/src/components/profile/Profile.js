@@ -65,6 +65,10 @@ function Profile({ userId }) {
       .catch((err) => console.log('Error fetching following:', err));
   };
 
+  useEffect(() => {
+    followingData && setIsFollower(followingData.some((follower) => follower.id == currUserId));
+  }, [followingData]);
+
   const getCurrentFollowStatus = () => {
     fetch(`http://localhost:8080/getFollowStatus?targetID=${userId}`, {
       credentials: 'include',
@@ -75,16 +79,17 @@ function Profile({ userId }) {
         }
         return resp.json();
       })
-      .then((data) => { //0-pending, 1-accepted, 2-declined, 3-not following
-        const receivedFollowStatus = data.data
+      .then((data) => {
+        //0-pending, 1-accepted, 2-declined, 3-not following
+        const receivedFollowStatus = data.data;
         if (receivedFollowStatus >= 0 && receivedFollowStatus < 4) {
-          setFollowStatus(receivedFollowStatus)
+          setFollowStatus(receivedFollowStatus);
         } else {
           console.log(`Unexpected follow status: ${receivedFollowStatus}`);
         }
       })
       .catch((err) => console.log('Error fetching follow status:', err));
-  }
+  };
 
   useEffect(() => {
     getFollowerHandler();
@@ -119,15 +124,15 @@ function Profile({ userId }) {
     const response = await followingCtx.requestToFollowOrUnfollow(targetUser, true);
     if (response !== null) {
       switch (response) {
-        case "Following successful":
-          setFollowStatus(1)
+        case 'Following successful':
+          setFollowStatus(1);
           getFollowerHandler(); //NOTE: Could update followers list without fetching from API
           break;
-        case "Follow request received":
-          setFollowStatus(0)
+        case 'Follow request received':
+          setFollowStatus(0);
           break;
         default:
-          console.log("Unexpected response for follow request", response)
+          console.log('Unexpected response for follow request', response);
       }
     }
   };
@@ -135,10 +140,10 @@ function Profile({ userId }) {
   const unfollowHandler = async () => {
     console.log('got the message  ');
     const response = await followingCtx.requestToFollowOrUnfollow(targetUser, false);
-    if (response && response === "Unfollow successful") {
+    if (response && response === 'Unfollow successful') {
       getFollowerHandler(); //NOTE: Could update followers list without fetching from API
-      setFollowStatus(3)
-    };
+      setFollowStatus(3);
+    }
   };
 
   const setPublicityHandler = (e) => {
@@ -193,6 +198,105 @@ function Profile({ userId }) {
       }
     }
   }, [targetUser]);
+  function closeFriendHandler(e) {
+    // Toggle the isCloseFriend state
+    setCloseFriend(!isCloseFriend);
+    if (isCloseFriend) {
+      const data = {
+        sourceid: parseInt(e.target.id),
+        targetid: parseInt(targetUser.id),
+        close_friend: false,
+      };
+
+      const cfOptions = {
+        method: 'POST',
+        credentials: 'include',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      };
+
+      fetch('http://localhost:8080/closeFriend', cfOptions)
+        .then((resp) => resp.json())
+        .then((data) => {
+          console.log('closefriend event: ', data);
+          if (data.success) {
+            console.log('closefriendchanges');
+          } else {
+            console.log('could not process closeFriend handler, failer');
+          }
+        })
+        .catch((err) => {
+          console.log('closefriend event: ', err);
+        });
+      setCloseFriend(false);
+    } else {
+      const data = {
+        sourceid: parseInt(e.target.id),
+        targetid: parseInt(targetUser.id),
+        close_friend: true,
+      };
+
+      const cfOptions = {
+        method: 'POST',
+        credentials: 'include',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      };
+
+      fetch('http://localhost:8080/closeFriend', cfOptions)
+        .then((resp) => resp.json())
+        .then((data) => {
+          console.log('closefriend event: ', data);
+          if (data.success) {
+            console.log('closefriendchanges');
+          } else {
+            console.log('could not process closeFriend handler, failer');
+          }
+        })
+        .catch((err) => {
+          console.log('closefriend event: ', err);
+        });
+      setCloseFriend(true);
+    }
+  }
+
+  useEffect(() => {
+    const data = {
+      sourceid: parseInt(currUserId),
+      targetid: parseInt(userId),
+    };
+
+    const cfOptions = {
+      method: 'POST',
+      credentials: 'include',
+      mode: 'cors',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    };
+
+    fetch('http://localhost:8080/closeFriendStatus', cfOptions)
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data.close_friend == true, data.close_friend, data);
+
+        if (data.close_friend == true) {
+          setCloseFriend(true);
+        } else {
+          setCloseFriend(false);
+        }
+      })
+      .catch((error) => {
+        console.log({ error });
+      });
+  }, [userId]);
 
   if (!targetUser) return <div>Loading...</div>;
 
@@ -202,16 +306,23 @@ function Profile({ userId }) {
   let closeFriendText;
 
   if (currUserId !== userId) {
-    switch(followStatus) {
+    switch (followStatus) {
       case 0: //Pending request
         followButton = (
           <div>
-            <button onClick={unfollowHandler} className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId} title="Cancel request">
+            <button
+              onClick={unfollowHandler}
+              className="btn btn-primary btn-sm"
+              type="button"
+              style={{ marginRight: 5 }}
+              id={userId}
+              title="Cancel request"
+            >
               Requested
             </button>
           </div>
         );
-      break;
+        break;
       case 1: //Accepted, following
         followButton = (
           <div>
@@ -222,7 +333,7 @@ function Profile({ userId }) {
         );
         break;
       case 2: //Declined
-       followButton = (
+        followButton = (
           <div>
             <button className="btn btn-primary btn-sm" type="button" style={{ marginRight: 5 }} id={userId}>
               Declined
@@ -240,7 +351,7 @@ function Profile({ userId }) {
         );
         break;
       default:
-        console.log("Unexptected follow status:", followStatus)
+        console.log('Unexptected follow status:', followStatus);
     }
 
     messageButton = (
@@ -251,7 +362,14 @@ function Profile({ userId }) {
       </div>
     );
     closeFriend = (
-      <input className="form-check-input" type="checkbox" style={{ fontSize: 24, marginRight: 5 }} id={userId} checked={isCloseFriend} />
+      <input
+        className="form-check-input"
+        type="checkbox"
+        style={{ fontSize: 24, marginRight: 5 }}
+        id={userId}
+        checked={isCloseFriend}
+        onChange={closeFriendHandler}
+      />
       // onChange={closeFriendHandler}
     );
     closeFriendText = <span style={{ marginLeft: 5 }}>Ad to OnlyFans</span>;

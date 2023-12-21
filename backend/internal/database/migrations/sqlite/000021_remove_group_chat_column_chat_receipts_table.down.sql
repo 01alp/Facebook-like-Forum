@@ -1,0 +1,1 @@
+ALTER TABLE chat_receipts ADD COLUMN group_chat INTEGER NOT NULL;

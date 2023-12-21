@@ -23,6 +23,7 @@ export const AuthContextProvider = (props) => {
   const loginURL = `${backendUrl}/login`;
   const regURL = `${backendUrl}/register`;
   const logoutURL = `${backendUrl}/logout`;
+  const authURL = `${backendUrl}/auth`;
 
   const navigate = useNavigate();
   const usersCtx = useContext(UsersContext);
@@ -30,6 +31,9 @@ export const AuthContextProvider = (props) => {
   useEffect(() => {
     const checkLoggedIn = async () => {
       const user = localStorage.getItem('user_id');
+      if (!user) {
+        return false;
+      }
       let backendLoggedIn = false;
       try {
         const reqOptions = {
@@ -37,10 +41,10 @@ export const AuthContextProvider = (props) => {
           credentials: 'include',
           mode: 'cors',
         };
-        const resp = await fetch(`${backendUrl}/auth`, reqOptions);
+        const resp = await fetch(authURL, reqOptions);
         const authResp = await resp.text();
         if (resp.ok && authResp !== '0') {
-          console.log('logged in user id: ', authResp);
+          console.log('backend logged in user id: ', authResp);
           backendLoggedIn = true;
         }
       } catch (err) {

@@ -4,12 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"social-network/internal/config"
 	"social-network/internal/logger"
 	"social-network/internal/sqlQueries"
 	"social-network/internal/structs"
+	"social-network/internal/websocket"
 	"strings"
 	"time"
 )
+
+type Service struct {
+}
 
 func HandleGetChatHistory(w http.ResponseWriter, r *http.Request) {
 	//Retrieve userID from the context
@@ -28,22 +33,18 @@ func HandleGetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if request.GroupChat {
+	messages, err := sqlQueries.GetChatHistory(userID, request.RecipientID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting chat history:", err)
+		http.Error(w, "Error getting chat history", http.StatusBadRequest)
 		return
-	} else {
-		messages, err := sqlQueries.GetPrivateChatHistory(userID, request.RecipientID)
-		if err != nil {
-			logger.ErrorLogger.Println("Error getting chat history:", err)
-			http.Error(w, "Error getting chat history", http.StatusBadRequest)
-			return
-		}
+	}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(structs.ChatHistoryReply{Messages: messages}); err != nil {
-			logger.ErrorLogger.Println("Error encoding chat history reply:", err)
-			http.Error(w, "Error encoding chat history reply", http.StatusInternalServerError)
-		}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(structs.ChatHistoryReply{Messages: messages}); err != nil {
+		logger.ErrorLogger.Println("Error encoding chat history reply:", err)
+		http.Error(w, "Error encoding chat history reply", http.StatusInternalServerError)
 	}
 }
 
@@ -76,7 +77,7 @@ func HandleNewMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// go attemptToSendMessages([]structs.UserMessageStruct{message})
+	go attemptToSendMessages([]structs.ChatMessage{message})
 
 	response := structs.ChatMessageResponse{
 		Status:  "success",
@@ -128,22 +129,74 @@ func validateChatMessage(message structs.ChatMessage, senderID int) error {
 }
 
 func storeMessageAndUpdateID(message *structs.ChatMessage) error {
-	var messageID int64
+	messageID, err := sqlQueries.AddChatMessage(*message)
+	if err != nil {
+		return err
+	}
 	if !message.GroupChat {
-		var err error
-		messageID, err = sqlQueries.AddPrivateChatMessage(*message)
-		if err != nil {
-			return err
-		}
-		err = sqlQueries.AddChatReceipt(false, message.SenderID, message.UserRecipientID)
+		err := sqlQueries.AddChatReceipt(messageID, message.UserRecipientID)
 		if err != nil {
 			return err
 		}
 	} else {
-		//TODO:
+		//TODO: For group chat add receipt for each recipient
 		return errors.New("groupChat not implemented")
 	}
 
 	message.ID = int(messageID)
 	return nil
+}
+
+func attemptToSendMessages(messages []structs.ChatMessage) {
+	// Safety net to recover from any panic within the goroutine
+	defer func() {
+		if r := recover(); r != nil {
+			logger.ErrorLogger.Printf("Recovered in attemptToSendMessage: %v\n", r)
+		}
+	}()
+
+	for _, message := range messages {
+		if message.GroupChat {
+			//TODO: Implement group message sending logic
+			continue
+		}
+		targetID := message.UserRecipientID
+		if !websocket.IsClientOnline(targetID) {
+			return
+		}
+
+		envelopeBytes, err := websocket.ComposeWSEnvelopeMsg(config.WsMsgTypes.CHAT_MSGS, messages)
+		if err != nil {
+			websocket.SendErrorMessage(targetID, "Error marshaling chat messages")
+			logger.ErrorLogger.Printf("Error composing chat messages for user %d: %v\n", targetID, err)
+			return
+		}
+
+		// Send the envelope to the recipient using WebSocket
+		err = websocket.SendMessageToUser(targetID, envelopeBytes)
+		if err != nil {
+			logger.ErrorLogger.Printf("Error sending message to user %d: %v\n", targetID, err)
+		}
+	}
+}
+
+func (s *Service) ConfirmMessagesDelivery(userID int, messageIDs []int) error {
+	err := sqlQueries.RemoveChatReceipts(userID, messageIDs)
+	if err != nil {
+		logger.ErrorLogger.Printf("Error removing chat receipts for user %d for messages: %v, err: %v", userID, messageIDs, err)
+	}
+	return err
+}
+
+func (s *Service) SendPendingChatMessages(userID int) {
+	messages, err := sqlQueries.GetPendingChatMessages(userID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting pending chat messages for user ", userID, err)
+		websocket.SendErrorMessage(userID, "Error getting pending chat messages")
+		return
+	}
+
+	if len(messages) > 0 {
+		attemptToSendMessages(messages)
+	}
 }

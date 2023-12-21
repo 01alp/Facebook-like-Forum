@@ -15,6 +15,12 @@ const AllNotificationItems = (props) => {
     localStorage.setItem('new_notif', JSON.stringify(Object.values(notiArr)));
   }, [notiArr]);
 
+  const removeNotification = (notifId) => {
+    const updatedNotiArr = notiArr.filter(noti => noti.id !== notifId);
+    setNotiArr(updatedNotiArr);
+    localStorage.setItem('new_notif', JSON.stringify(updatedNotiArr));
+  };
+
   //console.log('last exit before bridge: ', notiArr);
   return (
     <div>
@@ -29,6 +35,7 @@ const AllNotificationItems = (props) => {
               sourceId={notiItem.sourceid}
               createdAt={notiItem.createdat}
               groupId={notiItem.groupid}
+              onRemoveNotification={() => removeNotification(notiItem.id)}
             />
           );
         })}

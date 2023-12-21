@@ -10,7 +10,6 @@ import (
 	"social-network/internal/logger"
 	"social-network/internal/posts"
 	"social-network/internal/sqlQueries"
-	"social-network/internal/userChat"
 	"social-network/internal/users"
 	"social-network/internal/websocket"
 	"strconv"
@@ -66,9 +65,6 @@ func (s *Server) RegisterRoutes() {
 	mux.HandleFunc("/login", Middleware(AuthMiddlewareHandler{Handler: auth.LoginHandler, RequiresAuth: false}))
 	mux.HandleFunc("/logout", Middleware(AuthMiddlewareHandler{Handler: auth.LogoutHandler, RequiresAuth: false}))
 
-	//User chat:
-	mux.HandleFunc("/userChatMessage", Middleware(AuthMiddlewareHandler{Handler: userChat.HandleNewMessage, RequiresAuth: true}))
-
 	//Chat:
 	mux.HandleFunc("/getChatHistory", Middleware(AuthMiddlewareHandler{Handler: chat.HandleGetChatHistory, RequiresAuth: true}))
 	mux.HandleFunc("/chatMessage", Middleware(AuthMiddlewareHandler{Handler: chat.HandleNewMessage, RequiresAuth: true}))
@@ -100,6 +96,9 @@ func (s *Server) RegisterRoutes() {
 	mux.HandleFunc("/getFollowers", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowers, RequiresAuth: true}))
 	mux.HandleFunc("/getFollowing", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowing, RequiresAuth: true}))
 	mux.HandleFunc("/getFollowStatus", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowStatus, RequiresAuth: true}))
+	mux.HandleFunc("/closeFriend", Middleware((AuthMiddlewareHandler{Handler: users.HandleCloseFriendRequest, RequiresAuth: true})))
+	mux.HandleFunc("/closeFriendStatus", Middleware((AuthMiddlewareHandler{Handler: users.HandleCloseFriendStatus, RequiresAuth: true})))
+
 
 	mux.HandleFunc("/", Middleware(AuthMiddlewareHandler{Handler: handleNotFound, RequiresAuth: false}))
 }

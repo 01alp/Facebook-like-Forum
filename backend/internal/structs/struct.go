@@ -65,6 +65,12 @@ type FollowRequestReply struct { //For client->server response to ws msg follow 
 	Decision    bool `json:"accepted"` //False to decline, true to accept
 }
 
+
+type CloseFriendStr struct { //For http request client->server
+	TargetID    int  `json:"targetid"`
+	CloseFriend bool `json:"close_friend"` //make target user close friend if true
+}
+
 type UserFollowerStruct struct {
 	Id        int    `json:"id"`
 	Action    string `json:"action"`
@@ -73,20 +79,6 @@ type UserFollowerStruct struct {
 	Status    int    `json:"status"`
 	ChatNoti  int    `json:"chat_noti"`
 	LastMsgAt string `json:"last_msg_at"`
-}
-
-type UserMessageStruct struct {
-	Label         string `json:"label"`
-	Id            int    `json:"id"`
-	TargetId      int    `json:"targetid"`
-	SourceId      int    `json:"sourceid"`
-	Message       string `json:"message"`
-	CreatedAt     string `json:"createdat"`
-	OnlineUserIds []int  `json:"onlineuserids"`
-}
-
-type UserMessagePayload struct {
-	Data []UserMessageStruct `json:"data"`
 }
 
 type AuthResponse struct {
@@ -317,29 +309,4 @@ type NotiMessageStruct struct {
 	Type       string `json:"type"`
 	Accepted   bool   `json:"accepted"`
 	GroupTitle string `json:"grouptitle"`
-}
-
-type PrivateChatItemStruct struct {
-	Id        int    `json:"id"`
-	SourceId  int    `json:"sourceid"`
-	TargetId  int    `json:"targetid"`
-	ChatNoti  int    `json:"chat_noti"`
-	LastMsgAt string `json:"last_msg_at"`
-}
-
-type PrivateChatItemPayload struct {
-	Data []PrivateChatItemStruct `json:"data"`
-}
-
-type GroupChatItemStruct struct {
-	Id        int    `json:"id"`
-	GroupId   int    `json:"groupid"`
-	UserId    int    `json:"userid"`
-	ChatNoti  int    `json:"chat_noti"`
-	LastMsgAt string `json:"last_msg_at"`
-}
-
-type GroupChatItemPayload struct {
-	Data   []GroupChatItemStruct `json:"data"`
-	Public bool                  `json:"public"`
 }

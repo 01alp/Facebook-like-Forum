@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import useOnlineStatus from '../hooks/useOnlineStatus';
 import { ChatContext } from '../store/chat-context';
 
-function UserItem({ user }) {
+function ContactItem({ user }) {
   const { currentChat, handleChatSelect } = useContext(ChatContext);
   const isUserOnline = useOnlineStatus(user.id);
   const isCurrentChat = !currentChat.groupChat && currentChat.recipientId === user.id;
@@ -50,4 +50,4 @@ function UserItem({ user }) {
   )
 }
 
-export default UserItem;
+export default ContactItem;

@@ -41,6 +41,51 @@ func HandleFollowOrUnfollowRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//--------------CloseFriend-----------------------
+func HandleCloseFriendRequest(w http.ResponseWriter, r *http.Request) {
+
+	sourceID, err := getUserIDFromContext(r)
+	if err != nil {
+		logger.ErrorLogger.Println("Error handling follow/unfollow request:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var CloseFriendStr structs.CloseFriendStr
+	if err := json.NewDecoder(r.Body).Decode(&CloseFriendStr); err != nil {
+		logger.ErrorLogger.Println("Error decoding follow/unfollow request:", err)
+		http.Error(w, "Error decoding message", http.StatusBadRequest)
+		return
+	}
+
+	if CloseFriendStr.CloseFriend {
+		makeCloseFriend(w, r, sourceID, CloseFriendStr.TargetID)
+	} else {
+		breakCloseFriend(w, r, sourceID, CloseFriendStr.TargetID)
+	}
+}
+
+func HandleCloseFriendStatus(w http.ResponseWriter, r *http.Request) {
+
+	sourceID, err := getUserIDFromContext(r)
+	if err != nil {
+		logger.ErrorLogger.Println("Error handling follow/unfollow request:", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	var CloseFriendStr structs.CloseFriendStr
+	if err := json.NewDecoder(r.Body).Decode(&CloseFriendStr); err != nil {
+		logger.ErrorLogger.Println("Error decoding follow/unfollow request:", err)
+		http.Error(w, "Error decoding message "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	friend, _ := sqlQueries.CheckIfCloseFriend(sourceID, CloseFriendStr.TargetID)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "close_friend": friend})
+
+}
+
 func HandleGetFollowers(w http.ResponseWriter, r *http.Request) {
 	// Get userID from the query parameters
 	userIDStr := r.URL.Query().Get("userID")
@@ -159,6 +204,47 @@ func handleFollowRequest(w http.ResponseWriter, r *http.Request, sourceID int, t
 	json.NewEncoder(w).Encode(map[string]string{"status": "success", "data": successResponseMsg})
 }
 
+//-----------CloseFriend------------------
+
+func makeCloseFriend(w http.ResponseWriter, r *http.Request, sourceID int, targetID int) {
+
+	_, err := sqlQueries.MakeCloseFriend(sourceID, targetID) //sourceID, targetID, status
+	if err != nil {
+		logger.ErrorLogger.Printf("Error handling follow request for user %d to follow %d: %v", sourceID, targetID, err)
+		if strings.Contains(err.Error(), "is already following") {
+			errMsg := fmt.Sprintf("Error: User %d is already following %d", sourceID, targetID)
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Error with follow request", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+func breakCloseFriend(w http.ResponseWriter, r *http.Request, sourceID int, targetID int) {
+
+	fmt.Println(2)
+	_, err := sqlQueries.BreakCloseFriend(sourceID, targetID) //sourceID, targetID, status
+	if err != nil {
+		logger.ErrorLogger.Printf("Error handling follow request for user %d to follow %d: %v", sourceID, targetID, err)
+		if strings.Contains(err.Error(), "is already following") {
+			errMsg := fmt.Sprintf("Error: User %d is already following %d", sourceID, targetID)
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Error with follow request", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
 func handleUnfollowRequest(w http.ResponseWriter, r *http.Request, followerID int, followingID int) {
 	err := sqlQueries.RemoveFollower(followerID, followingID)
 	if err != nil {
@@ -202,7 +288,10 @@ func attemptToSendFollowRequest(targetID int, sourceID int) {
 		// Send the envelope to the recipient using WebSocket
 		err = websocket.SendMessageToUser(targetID, envelopeBytes)
 		if err != nil {
+			fmt.Println("sent failed")
 			logger.ErrorLogger.Printf("Error sending followRequest msg to user %d: %v\n", targetID, err)
+		} else {
+			fmt.Println("successfully sent")
 		}
 	}
 }

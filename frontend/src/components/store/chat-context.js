@@ -1,13 +1,13 @@
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useCallback } from 'react';
 
 export const ChatContext = createContext();
 
 export const ChatProvider = ({ children }) => {
   const [currentChat, setCurrentChat] = useState({ recipientId: null, groupChat: null });
 
-  const handleChatSelect = (recipientId, groupChat) => {
+  const handleChatSelect = useCallback((recipientId, groupChat) => {
     setCurrentChat({ recipientId, groupChat });
-  };
+  }, []);
 
   return (
       <ChatContext.Provider value={{ currentChat, handleChatSelect }}>

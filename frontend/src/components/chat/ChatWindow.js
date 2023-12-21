@@ -1,16 +1,28 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { ChatContext } from '../store/chat-context';
+import { WebSocketContext } from '../store/websocket-context';
+import EmojiPicker from 'emoji-picker-react';
 
 function ChatWindow() {
   const { currentChat } = useContext(ChatContext);
+  const { newChatMsgObj } = useContext(WebSocketContext);
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
 
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
   useEffect(() => {
-    if (currentChat.recipientId) {  
+    if (currentChat.recipientId) {
       fetchChatHistory();
     }
   }, [currentChat]);
+
+  useEffect(() => {
+    if (newChatMsgObj) {
+      setMessages((prevMessages) => (Array.isArray(prevMessages) ? [...prevMessages, newChatMsgObj] : [newChatMsgObj]));
+    }
+  }, [newChatMsgObj]);
 
   const fetchChatHistory = async () => {
     try {
@@ -39,8 +51,8 @@ function ChatWindow() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (newMessage.trim() === "") {
-      return
+    if (newMessage.trim() === '') {
+      return;
     }
     sendNewMessage();
     setNewMessage('');
@@ -62,7 +74,7 @@ function ChatWindow() {
           group_id: currentChat.groupChat ? currentChat.recipientId : null,
           message: newMessage,
           createdat: new Date().toISOString(),
-        })
+        }),
       });
 
       if (!response.ok) {
@@ -70,12 +82,22 @@ function ChatWindow() {
       }
 
       const sentMessage = await response.json();
-      setMessages(prevMessages => Array.isArray(prevMessages) ? [...prevMessages, sentMessage.message] : [sentMessage.message]);
-
+      setMessages((prevMessages) => (Array.isArray(prevMessages) ? [...prevMessages, sentMessage.message] : [sentMessage.message]));
     } catch (error) {
       console.error('Error sending new chat message:', error);
     }
-  }
+  };
+  const showEmojiPickerHandler = useCallback((e) => {
+    e.preventDefault();
+    console.log('toggle emoji picker');
+    setShowEmojiPicker((val) => !val);
+  }, []);
+  const emojiClickHandler = (emojiObj) => {
+    setNewMessage((prevInput) => {
+      console.log('emo ob', emojiObj);
+      return prevInput + emojiObj.emoji;
+    });
+  };
 
   return (
     <div
@@ -86,7 +108,13 @@ function ChatWindow() {
       }}
     >
       {/* Start: ChatWrapper */}
-      <div style={{ color: 'var(--bs-body-bg)', height: 500 }}>
+      <div
+        style={{
+          color: 'var(--bs-body-bg)',
+          overflowY: 'auto',
+          height: 450,
+        }}
+      >
         {/* Start: chatBox */}
         <div style={{ margin: 5, padding: 5 }}>
           {/* Start: messageWrapper */}
@@ -125,7 +153,8 @@ function ChatWindow() {
                 </div>
                 {/* End: message */}
               </div>
-          ))) : (
+            ))
+          ) : (
             <p style={{ color: 'black' }}>No messages to display</p>
           )}
           {/* End: messageWrapper */}
@@ -135,6 +164,11 @@ function ChatWindow() {
       {/* End: ChatWrapper */}
       {/* Start: messageForm */}
       <div style={{ margin: 5, padding: 5 }}>
+        {showEmojiPicker && (
+          <div style={{ marginLeft: 5, marginBottom: 100, bottom: '20%' }} className="d-flex align-items-sm-center position-absolute">
+            <EmojiPicker onEmojiClick={emojiClickHandler} width={300} />
+          </div>
+        )}
         <form
           onSubmit={handleSubmit}
           className="d-flex justify-content-start flex-wrap align-items-md-center align-items-lg-center"
@@ -149,7 +183,7 @@ function ChatWindow() {
           <div style={{ width: '70%' }}>
             <textarea
               className="form-control"
-              placeholder="Send message..." 
+              placeholder="Send message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
             />
@@ -157,7 +191,7 @@ function ChatWindow() {
           {/* End: textArea */}
           <div className="d-flex align-items-sm-center">
             {/* Start: Smiley */}
-            <div style={{ marginLeft: 5, marginRight: 5 }}>
+            <div style={{ marginLeft: 5, marginRight: 5 }} onClick={showEmojiPickerHandler}>
               <i
                 className="far fa-smile"
                 style={{
@@ -179,7 +213,7 @@ function ChatWindow() {
       </div>
       {/* End: messageForm */}
     </div>
-  )
+  );
 }
 
 export default ChatWindow;
