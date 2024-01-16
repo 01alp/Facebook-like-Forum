@@ -1,13 +1,15 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../modules/Avatar';
-import ErrorAlert from '../modules/ErrorAlert';
+import AlertElement from '../modules/AlertElement.js';
 import { ImageValidation } from '../utils/commonFunc.js';
 
 function CreatePost(props) {
   const contentInput = useRef();
   const privacyInputRef = useRef();
   const imgInputRef = useRef();
+
+  const [selectedPrivacy, setSelectedPrivacy] = useState('0');
 
   const userId = +localStorage.getItem('user_id');
   const first = localStorage.getItem('fname');
@@ -45,6 +47,11 @@ function CreatePost(props) {
     setImagePreview(null);
     setErrorMessage('');
   }
+
+  function handlePrivacyChange(e) {
+    setSelectedPrivacy(e.target.value);
+  }
+
   const imgUploadHandler = (e) => {
     setUploadedImg(null);
     setImagePreview(null);
@@ -102,7 +109,7 @@ function CreatePost(props) {
           {/* End: createPostAuthorDiv */}
           {/* Start: Select private */}
           <div>
-            <select className="form-select dropdown" style={{ margin: 5 }} defaultValue="0" ref={privacyInputRef}>
+            <select className="form-select dropdown" style={{ margin: 5 }} defaultValue="0" ref={privacyInputRef} onChange={handlePrivacyChange}>
               <optgroup label="This is a group">
                 <option value="0">Public 🟢</option>
                 <option value="2">OnlyFans 🔓</option>
@@ -111,6 +118,13 @@ function CreatePost(props) {
             </select>
           </div>
           {/* End: Select private */}
+          {selectedPrivacy === '2' && (
+            <AlertElement
+              message="&#9432; OnlyFans posts are visible to your close friends only. You can add close friends by going to your profile and under followers check the box next to a name"
+              type="light"
+              dismissible={false}
+            />
+          )}
           {/* Start: create post text */}
           <div>
             <textarea
@@ -145,7 +159,7 @@ function CreatePost(props) {
               />
               {/* End: image */}
             </div>
-            {errorMessage !== '' && <ErrorAlert errorMessage={errorMessage} onErrorDismiss={setErrorMessage} />}
+            {errorMessage !== '' && <AlertElement message={errorMessage} type="warning" dismissible={true} onAlertDismiss={setErrorMessage} />}
             {imagePreview && <img src={imagePreview} width={'100px'} />}
             {/* End: imagePoster */}
           </div>

@@ -16,6 +16,11 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 function App() {
   const authCtx = useContext(AuthContext);
 
+  // If authCtx.isLoggedIn is null, then we are still checking if the user is logged in or not
+  if (authCtx.isLoggedIn === null) {
+    return <h1>Loading ...</h1>;
+  }
+
   return (
     <Routes>
       <Route element={<PrivateRoutes isLoggedIn={authCtx.isLoggedIn} />}>

@@ -2,14 +2,14 @@ import React, { useContext } from 'react';
 import useOnlineStatus from '../hooks/useOnlineStatus';
 import { ChatContext } from '../store/chat-context';
 
-function ContactItem({ user }) {
+function UserContactItem({ user }) {
   const { currentChat, handleChatSelect } = useContext(ChatContext);
   const isUserOnline = useOnlineStatus(user.id);
   const isCurrentChat = !currentChat.groupChat && currentChat.recipientId === user.id;
 
   const handleClick = () => {
     if (!isCurrentChat) {
-      handleChatSelect(user.id, false);
+      handleChatSelect(user.id, user.fname, false);
     }
   };
   
@@ -50,4 +50,4 @@ function ContactItem({ user }) {
   )
 }
 
-export default ContactItem;
+export default UserContactItem;

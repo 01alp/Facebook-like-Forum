@@ -57,13 +57,13 @@ function Layout(props) {
                 </Link>
                 <Link className={navigateTo.pathname === '/group' ? 'active nav-link' : ' nav-link'} to="/group">
                   <i className="fas fa-window-maximize" />
-                  <span>Group</span>
+                  <span>Groups</span>
                 </Link>
               </li>
               <li className="nav-item">
                 <Link className={navigateTo.pathname === '/profile' ? 'active nav-link' : ' nav-link'} to={`/profile/${userId}`}>
                   <i className="fas fa-user" />
-                  <span>{`${first} ${last}`}</span>
+                  <span>My profile</span>
                 </Link>
               </li>
               <li className="nav-item">

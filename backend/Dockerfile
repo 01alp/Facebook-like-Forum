@@ -6,7 +6,7 @@ RUN apk add --no-cache gcc musl-dev
 
 
 # Set destination for COPY
-WORKDIR /app
+WORKDIR /go/src/app
 
 # Download Go modules
 COPY go.mod go.sum ./
@@ -18,4 +18,10 @@ COPY . .
 ENV CGO_ENABLED=1 
 
 # Build
-RUN go build -o main
+RUN go build -o main .
+
+# Expose port 8080 to the outside world
+EXPOSE 8080
+
+# Run the compiled binary.
+CMD ["go", "run", "main.go"]

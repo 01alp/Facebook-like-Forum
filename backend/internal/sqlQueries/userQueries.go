@@ -25,7 +25,14 @@ func AddNewUser(user structs.User) error {
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Exec(user.Username, user.FirstName, user.LastName, strings.ToLower(user.Email), user.Password, user.AboutMe, user.BirthDate, 0)
+	var sqlUsername sql.NullString
+	if user.Username != "" {
+		sqlUsername = sql.NullString{String: user.Username, Valid: true}
+	} else {
+		sqlUsername = sql.NullString{Valid: false} // Will insert NULL into the database
+	}
+
+	res, err := stmt.Exec(sqlUsername, user.FirstName, user.LastName, strings.ToLower(user.Email), user.Password, user.AboutMe, user.BirthDate, 0)
 	if err != nil {
 		logger.ErrorLogger.Println("Exec error while adding user to db:", err)
 		return err
@@ -53,6 +60,8 @@ func AddNewUser(user structs.User) error {
 // Get SQL
 func GetUserFromSession(r *http.Request) structs.User {
 	var user structs.User
+	var sqlUsername sql.NullString
+
 	session, err := r.Cookie("session_token")
 	if err != nil {
 		logger.ErrorLogger.Println("GetSession error:", err)
@@ -60,11 +69,18 @@ func GetUserFromSession(r *http.Request) structs.User {
 	}
 
 	row := database.DB.QueryRow("SELECT u.* from users u LEFT JOIN sessions s ON s.user_id = u.id WHERE s.session_token = ?", session.Value)
-	err = row.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
+	err = row.Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
 	if err != nil {
 		logger.ErrorLogger.Println("GetSessionScan error:", err)
 		return user
 	}
+
+	if sqlUsername.Valid {
+		user.Username = sqlUsername.String
+	} else {
+		user.Username = ""
+	}
+
 	SetAvatar(&user)
 	return user
 }
@@ -73,13 +89,21 @@ func GetUserFromSession(r *http.Request) structs.User {
 // Password omitted for security
 func GetUserFromID(userID int) structs.User {
 	var user structs.User
+	var sqlUsername sql.NullString
 
 	row := database.DB.QueryRow("SELECT id, username, first_name, last_name, email, about_me, birth_date, register_date, avatar, public from users WHERE id = ?", userID)
-	err := row.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
+	err := row.Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
 	if err != nil {
 		logger.ErrorLogger.Println("GetUserScan error:", err)
 		return user
 	}
+
+	if sqlUsername.Valid {
+		user.Username = sqlUsername.String
+	} else {
+		user.Username = ""
+	}
+
 	SetAvatar(&user)
 	return user
 }
@@ -110,10 +134,19 @@ func GetUsersFromIDs(userIDs []int) ([]structs.User, error) {
 	var users []structs.User
 	for rows.Next() {
 		var user structs.User
-		if err := rows.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public); err != nil {
+		var sqlUsername sql.NullString
+
+		if err := rows.Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public); err != nil {
 			logger.ErrorLogger.Println("GetUsersFromIDs scan error:", err)
 			continue
 		}
+
+		if sqlUsername.Valid {
+			user.Username = sqlUsername.String
+		} else {
+			user.Username = ""
+		}
+
 		SetAvatar(&user)
 		users = append(users, user)
 	}
@@ -128,39 +161,63 @@ func GetUsersFromIDs(userIDs []int) ([]structs.User, error) {
 
 func GetUserFromUsername(r *http.Request, username string) structs.User { // case insensitive
 	var user structs.User
+	var sqlUsername sql.NullString
 
 	row := database.DB.QueryRow("SELECT * from users WHERE LOWER(username) = ?", strings.ToLower(username))
-	err := row.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
+	err := row.Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
 	if err != nil {
 		logger.ErrorLogger.Println("GetUserScan error:", err)
 		return user
 	}
+
+	if sqlUsername.Valid {
+		user.Username = sqlUsername.String
+	} else {
+		user.Username = ""
+	}
+
 	SetAvatar(&user)
 	return user
 }
 
 func GetUserFromEmail(r *http.Request, email string) structs.User {
 	var user structs.User
+	var sqlUsername sql.NullString
 
 	row := database.DB.QueryRow("SELECT * from users WHERE email = ?", email)
-	err := row.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
+	err := row.Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
 	if err != nil {
 		logger.ErrorLogger.Println("GetUserScan error:", err)
 		return user
 	}
+
+	if sqlUsername.Valid {
+		user.Username = sqlUsername.String
+	} else {
+		user.Username = ""
+	}
+
 	SetAvatar(&user)
 	return user
 }
 
 func GetUserFromLogin(r *http.Request, identifier string) structs.User { // identifier can be username or email, email case insensitive.
 	var user structs.User
+	var sqlUsername sql.NullString
 	var lowerEmail, Username = strings.ToLower(identifier), identifier
 	row := database.DB.QueryRow("SELECT * from users WHERE LOWER(email) = ? OR username = ?", lowerEmail, Username)
-	err := row.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
+	err := row.Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
 	if err != nil {
 		logger.ErrorLogger.Println("GetUserFromLoginScan error:", err)
 		return structs.User{}
 	}
+
+	if sqlUsername.Valid {
+		user.Username = sqlUsername.String
+	} else {
+		user.Username = ""
+	}
+
 	SetAvatar(&user)
 	return user
 }
@@ -199,13 +256,21 @@ func SetAvatar(user *structs.User) { // struct by default has the ID of the imag
 
 func GetUserFromId(userId int) (structs.User, error) {
 	var user structs.User
+	var sqlUsername sql.NullString
 
 	query := "SELECT * FROM users WHERE id = ?"
-	err := database.DB.QueryRow(query, userId).Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
+	err := database.DB.QueryRow(query, userId).Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
 	if err != nil {
 		logger.ErrorLogger.Println("GetUserFromId query error:", err)
 		return user, err
 	}
+
+	if sqlUsername.Valid {
+		user.Username = sqlUsername.String
+	} else {
+		user.Username = ""
+	}
+
 	SetAvatar(&user)
 	return user, nil
 }
@@ -222,11 +287,19 @@ func GetAllUsers() ([]structs.User, error) {
 	var users []structs.User
 	for rows.Next() {
 		var user structs.User
-		err := rows.Scan(&user.ID, &user.Username, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
+		var sqlUsername sql.NullString
+		err := rows.Scan(&user.ID, &sqlUsername, &user.FirstName, &user.LastName, &user.Email, &user.Password, &user.AboutMe, &user.BirthDate, &user.RegisterDate, &user.Avatar, &user.Public)
 		if err != nil {
 			logger.ErrorLogger.Println("GetAllUsers scan error:", err)
 			return nil, err
 		}
+
+		if sqlUsername.Valid {
+			user.Username = sqlUsername.String
+		} else {
+			user.Username = ""
+		}
+
 		SetAvatar(&user)
 		user.Password = "" // not sending password to client
 		users = append(users, user)
@@ -266,4 +339,27 @@ func ChangeProfileVisibility(userID int, newVisibility int) error {
 	}
 
 	return nil
+}
+
+func CheckProfileAccess(requestingUserID int, requestedUserID int) (bool, error) {
+	if requestingUserID == requestedUserID {
+		return true, nil
+	}
+
+	publicProfile, err := GetProfileVisibility(requestedUserID)
+	if err != nil {
+		return false, err
+	}
+	if publicProfile == 1 { // If profile is public, access is given
+		return true, nil
+	}
+
+	followStatus, err := GetFollowStatus(requestingUserID, requestedUserID)
+	if err != nil {
+		return false, err
+	}
+	if followStatus == 1 { // If profile is private, but following, access is given
+		return true, nil
+	}
+	return false, nil
 }

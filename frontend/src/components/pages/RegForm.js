@@ -151,7 +151,7 @@ const RegForm = () => {
                             className="form-control form-control-user"
                             type="text"
                             id="exampleFirstName"
-                            placeholder="First Name"
+                            placeholder="First Name*"
                             name="first_name"
                             value={enteredFName}
                             onChange={fNameChangeHandler}
@@ -163,7 +163,7 @@ const RegForm = () => {
                             className="form-control form-control-user"
                             type="text"
                             id="exampleLastName"
-                            placeholder="Last Name"
+                            placeholder="Last Name*"
                             name="last_name"
                             value={enteredLName}
                             onChange={lNameChangeHandler}
@@ -177,7 +177,7 @@ const RegForm = () => {
                           type="email"
                           id="exampleInputEmail"
                           aria-describedby="emailHelp"
-                          placeholder="Email Address"
+                          placeholder="Email Address*"
                           name="email"
                           value={enteredEmail}
                           onChange={emailChangeHandler}
@@ -190,7 +190,7 @@ const RegForm = () => {
                             className="form-control form-control-user"
                             type="password"
                             id="examplePasswordInput"
-                            placeholder="Password"
+                            placeholder="Password*"
                             name="password"
                             value={enteredPw}
                             onChange={pwChangeHandler}
@@ -201,7 +201,7 @@ const RegForm = () => {
                           <input
                             className="form-control form-control-user"
                             type="password"
-                            placeholder="Repeat Password"
+                            placeholder="Repeat Password*"
                             value={enteredRepeatPw}
                             onChange={pwRepeatChangeHandler}
                             required
@@ -209,7 +209,7 @@ const RegForm = () => {
                         </div>
                       </div>
                       <div style={{ margin: '10px', padding: '5px' }}>
-                        <p>Date of Birth</p>
+                        <p>Date of Birth*</p>
                         <input
                           className="border rounded-pill form-control"
                           type="date"
@@ -235,11 +235,10 @@ const RegForm = () => {
                         <input
                           className="form-control"
                           type="text"
-                          placeholder="Nick Name"
+                          placeholder="Username"
                           name="nname"
                           value={enteredNickname}
                           onChange={nicknameChangeHandler}
-                          required
                         />
                       </div>
                       <div style={{ margin: '10px', padding: '5px' }}>

@@ -12,7 +12,6 @@ func InsertNewSession(userID int, sessionToken string, expiresAt time.Time) erro
         INSERT INTO sessions (session_token, user_id, expires_at) VALUES (?, ?, ?)
     `, sessionToken, userID, expiresAt)
 	if err != nil {
-		//TODO: Handle situation, where previous/expired session for same user already exists. Currently new session is then rejected
 		logger.ErrorLogger.Println("Failed to insert session into DB:", err)
 		return err
 	}

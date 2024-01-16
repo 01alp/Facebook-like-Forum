@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UsersContext } from './users-context';
 
 export const AuthContext = React.createContext({
-  isLoggedIn: false,
+  isLoggedIn: null,
   onReg: (regPayloadObj) => {},
   onLogin: (loginPayloadObj) => {},
   onLogout: () => {},
@@ -14,7 +14,7 @@ export const AuthContext = React.createContext({
 });
 
 export const AuthContextProvider = (props) => {
-  const [loggedIn, setLoggedIn] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(null);
   const [regSuccess, setRegSuccess] = useState(false);
   const [notif, setNotif] = useState([]);
   const [errMsg, setErrMsg] = useState('');

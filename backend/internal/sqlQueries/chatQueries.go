@@ -2,6 +2,7 @@ package sqlQueries
 
 import (
 	"errors"
+	"fmt"
 	"social-network/internal/database"
 	"social-network/internal/logger"
 	"social-network/internal/structs"
@@ -9,7 +10,7 @@ import (
 	"time"
 )
 
-func GetChatHistory(userOneID int, userTwoID int) ([]structs.ChatMessage, error) {
+func GetUserChatHistory(userOneID int, userTwoID int) ([]structs.ChatMessage, error) {
 	const query = `
 		SELECT cm.id, cm.group_chat, cm.sender_id, u.first_name, cm.user_recipient_id, cm.group_id, cm.message, cm.created_at 
 		FROM chat_messages cm
@@ -40,9 +41,35 @@ func GetChatHistory(userOneID int, userTwoID int) ([]structs.ChatMessage, error)
 	return messages, nil
 }
 
+func GetGroupChatHistory(groupID int) ([]structs.ChatMessage, error) {
+	const query = `SELECT cm.id, cm.group_chat, cm.sender_id, u.first_name, cm.user_recipient_id, cm.group_id, g.title, cm.message, cm.created_at 
+                   FROM chat_messages cm
+                   JOIN users u ON cm.sender_id = u.id
+				   JOIN groups g ON cm.group_id = g.id 
+                   WHERE cm.group_id = $1
+                   ORDER BY cm.created_at`
+
+	rows, err := database.DB.Query(query, groupID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error querying db for group chat history", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []structs.ChatMessage
+	for rows.Next() {
+		var msg structs.ChatMessage
+		if err := rows.Scan(&msg.ID, &msg.GroupChat, &msg.SenderID, &msg.SenderFirstName, &msg.UserRecipientID, &msg.GroupID, &msg.GroupName, &msg.Message, &msg.CreatedAt); err != nil {
+			logger.ErrorLogger.Println("Error scanning rows for group chat history", err)
+			return nil, err
+		}
+		messages = append(messages, msg)
+	}
+	return messages, nil
+}
+
 // Insert new chat message and return it's ID or error
 func AddChatMessage(msg structs.ChatMessage) (int, error) {
-
 	createdAt, err := time.Parse(time.RFC3339, msg.CreatedAt)
 	if err != nil {
 		logger.ErrorLogger.Println("invalid timestamp format for created at", err)
@@ -73,17 +100,29 @@ func AddChatMessage(msg structs.ChatMessage) (int, error) {
 	return messageID, nil
 }
 
-func AddChatReceipt(msgID int, recipientID int) error {
-	stmt, err := database.DB.Prepare(`INSERT INTO chat_receipts (message_id, recipient_id) VALUES (?, ?)`)
+func AddChatReceipts(msgID int, recipientIDs []int) error {
+	if len(recipientIDs) == 0 {
+		return nil
+	}
+
+	var placeholders []string
+	var args []interface{}
+	for _, recipientID := range recipientIDs {
+		placeholders = append(placeholders, "(?, ?)")
+		args = append(args, msgID, recipientID)
+	}
+	values := strings.Join(placeholders, ",")
+
+	stmt, err := database.DB.Prepare(fmt.Sprintf("INSERT INTO chat_receipts (message_id, recipient_id) VALUES %s", values))
 	if err != nil {
-		logger.ErrorLogger.Println("DB prepare error when adding new chat receipt", err)
+		logger.ErrorLogger.Println("DB prepare error for batch insert into chat receipts", err)
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(msgID, recipientID)
+	_, err = stmt.Exec(args...)
 	if err != nil {
-		logger.ErrorLogger.Println("DB exec error when adding new chat receipt", err)
+		logger.ErrorLogger.Println("DB exec error for batch insert into chat receipts", err)
 		return err
 	}
 

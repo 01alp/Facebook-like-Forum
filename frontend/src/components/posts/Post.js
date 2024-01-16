@@ -78,7 +78,7 @@ function Post(props) {
             </div>
             <div>
               <Link to={`/profile/${props.authorId}`}>
-                <div>{`${props.fname} ${props.lname}${userId == props.authorId ? ' (me)' : ' ' + '(' + props.nname + ')'}`}</div>
+                <div>{`${props.fname} ${props.lname}${userId == props.authorId ? ' (me)' : props.nname ? ' ' + '(' + props.nname + ')' : ''}`}</div>
               </Link>
             </div>
           </div>

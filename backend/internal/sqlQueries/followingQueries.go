@@ -92,7 +92,6 @@ func GetFollowedUsers(userID int) ([]int, error) {
 	return followers, nil
 }
 
-// not in use atm maybe dont need
 func CheckCloseFriends(sourceID int, targetID int) (bool, error) {
 	var isCloseFriend bool
 
@@ -105,28 +104,37 @@ func CheckCloseFriends(sourceID int, targetID int) (bool, error) {
 	return isCloseFriend, nil
 }
 
-// get all users that have set targetID as a close friend
+// get all users that sourceID has added as close friends
 // made this func so dont have to make a request to db for each post
-func GetCloseFriends(targetID int) ([]int, error) {
+func GetCloseFriends(userID int, option int) ([]int, error) {
 	var closeFriends []int
+	var query string
 
-	// query for all users that have souceID as a close friend
-	query := "SELECT source_id FROM close_friends WHERE friend_id= ?"
-	rows, err := database.DB.Query(query, targetID)
+	if option == 0 {
+		// query for all users that userID has added as a close friend
+		query = "SELECT friend_id FROM close_friends WHERE source_id = ?"
+	} else if option == 1 {
+		// query for all users that have userID as a close friend
+		query = "SELECT source_id FROM close_friends WHERE friend_id = ?"
+	} else {
+		return nil, fmt.Errorf("invalid option")
+	}
+
+	rows, err := database.DB.Query(query, userID)
 	if err != nil {
-		logger.ErrorLogger.Printf("Error getting close friends for user %d: %v", targetID, err)
+		logger.ErrorLogger.Printf("Error getting close friends for user %d: %v", userID, err)
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var sourceID int
-		err := rows.Scan(&sourceID)
+		var friendID int
+		err := rows.Scan(&friendID)
 		if err != nil {
-			logger.ErrorLogger.Printf("Error scanning close friend ID for user %d: %v", targetID, err)
+			logger.ErrorLogger.Printf("Error scanning close friends list for user %d: %v", userID, err)
 			continue
 		}
-		closeFriends = append(closeFriends, sourceID)
+		closeFriends = append(closeFriends, friendID)
 	}
 	return closeFriends, nil
 }

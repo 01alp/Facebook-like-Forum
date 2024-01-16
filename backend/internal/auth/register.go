@@ -37,7 +37,6 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println(newUser)
 
-	//TODO: More validation needed here
 	if newUser.Email == "" || newUser.Password == "" {
 		logger.InfoLogger.Println("Register attempt with missing email or username")
 		http.Error(w, "Email and password are required", http.StatusBadRequest)
@@ -50,10 +49,12 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user := sqlQueries.GetUserFromUsername(r, newUser.Username); user.ID != 0 {
-		logger.InfoLogger.Println("Register attempt with already taken username")
-		http.Error(w, "Username is already taken.", http.StatusBadRequest)
-		return
+	if newUser.Username != "" {
+		if user := sqlQueries.GetUserFromUsername(r, newUser.Username); user.ID != 0 {
+			logger.InfoLogger.Println("Register attempt with already taken username")
+			http.Error(w, "Username is already taken.", http.StatusBadRequest)
+			return
+		}
 	}
 
 	if val := valid(newUser.Email); !val {

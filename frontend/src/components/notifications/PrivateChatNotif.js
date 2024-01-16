@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ChatContext } from '../store/chat-context';
 import Avatar from '../modules/Avatar';
 
-const ChatNotif = (props) => {
+const PrivateChatNotif = (props) => {
   const navigate = useNavigate();
   const { handleChatSelect } = useContext(ChatContext);
   const [isVisible ] = useState(true);
 
   const handleChatNotiClick = () => {
     props.removeNoti();
-    handleChatSelect(props.srcUser.id, false); //TODO: Atm works only for private chat
+    handleChatSelect(props.srcUser.id, props.srcUser.fname, false);
     navigate(`/chat/`);
   };
 
@@ -32,4 +32,4 @@ const ChatNotif = (props) => {
   );
 };
 
-export default ChatNotif;
+export default PrivateChatNotif;

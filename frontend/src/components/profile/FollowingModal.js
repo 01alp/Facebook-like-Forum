@@ -5,11 +5,15 @@ function FollowingModal(props) {
   const navigate = useNavigate();
 
   function handleClick(e) {
-    const id = e.target.id;
+    let targetElement = e.target.closest('[data-id]');
 
-    console.log('id: ', id);
-    navigate(`/profile/${id}`);
-    console.log('following modal ', e);
+    if (targetElement) {
+      let id = targetElement.getAttribute('data-id');
+      console.log(`Navigating to profile with ID: ${id}`);
+      navigate(`/profile/${id}`);
+    } else {
+      console.log('No valid target found for navigation.');
+    }
   }
 
   return (
@@ -32,7 +36,13 @@ function FollowingModal(props) {
       <div id="collapse-2" className="collapse">
         {props.following && props.following.length > 0 ? (
           props.following.map((follow) => (
-            <div style={{ margin: '5px' }} className="d-flex align-items-lg-center" key={follow.id} id={follow.id} onClick={handleClick}>
+            <div
+              style={{ margin: '5px' }}
+              className="d-flex align-items-lg-center"
+              key={follow.id}
+              data-id={follow.id}
+              onClick={handleClick}
+            >
               <Avatar id={follow.id} width={52} src={follow.avatar} />
               <span style={{ marginLeft: '10px' }} id={follow.id}>
                 {follow.fname}

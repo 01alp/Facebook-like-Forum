@@ -81,24 +81,28 @@ func (s *Server) RegisterRoutes() {
 	mux.HandleFunc("/declineGroup", Middleware(AuthMiddlewareHandler{Handler: groups.DeclineGroupRequest, RequiresAuth: true}))
 	mux.HandleFunc("/getAllGroups", Middleware(AuthMiddlewareHandler{Handler: groups.GetAllGroups, RequiresAuth: false}))
 	mux.HandleFunc("/getGroups", Middleware(AuthMiddlewareHandler{Handler: groups.GetGroups, RequiresAuth: false}))
+	mux.HandleFunc("/getJoinedGroups", Middleware(AuthMiddlewareHandler{Handler: groups.GetJoinedGroups, RequiresAuth: true}))
 	mux.HandleFunc("/getGroupMembers", Middleware(AuthMiddlewareHandler{Handler: groups.GetGroupMembers, RequiresAuth: false}))
 	mux.HandleFunc("/cancelGroupRequest", Middleware(AuthMiddlewareHandler{Handler: groups.CancelGroupRequest, RequiresAuth: true}))
 	mux.HandleFunc("/getGroupCount", Middleware(AuthMiddlewareHandler{Handler: groups.GetTotalGroupCount, RequiresAuth: false}))
 	mux.HandleFunc("/leaveGroup", Middleware(AuthMiddlewareHandler{Handler: groups.LeaveGroup, RequiresAuth: true}))
+	mux.HandleFunc("/kickFromGroup", Middleware(AuthMiddlewareHandler{Handler: groups.KickFromGroup, RequiresAuth: true}))
+
+	//Group events:
+	mux.HandleFunc("/createEvent", Middleware(AuthMiddlewareHandler{Handler: groups.CreateEvent, RequiresAuth: true}))
 
 	// websocket:
-	mux.HandleFunc("/ws", websocket.UpgradeHandler) //TODO: Move through middleware?
+	mux.HandleFunc("/ws", websocket.UpgradeHandler)
 
 	// users, profile visibility, followers:
-	mux.HandleFunc("/users", Middleware(AuthMiddlewareHandler{Handler: users.GetUsersHandler, RequiresAuth: false}))
+	mux.HandleFunc("/users", Middleware(AuthMiddlewareHandler{Handler: users.GetUsersHandler, RequiresAuth: true}))
 	mux.HandleFunc("/changeProfileVisibility", Middleware(AuthMiddlewareHandler{Handler: users.HandleProfileVisibilityChange, RequiresAuth: true}))
 	mux.HandleFunc("/followOrUnfollowRequest", Middleware(AuthMiddlewareHandler{Handler: users.HandleFollowOrUnfollowRequest, RequiresAuth: true}))
 	mux.HandleFunc("/getFollowers", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowers, RequiresAuth: true}))
 	mux.HandleFunc("/getFollowing", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowing, RequiresAuth: true}))
 	mux.HandleFunc("/getFollowStatus", Middleware(AuthMiddlewareHandler{Handler: users.HandleGetFollowStatus, RequiresAuth: true}))
 	mux.HandleFunc("/closeFriend", Middleware((AuthMiddlewareHandler{Handler: users.HandleCloseFriendRequest, RequiresAuth: true})))
-	mux.HandleFunc("/closeFriendStatus", Middleware((AuthMiddlewareHandler{Handler: users.HandleCloseFriendStatus, RequiresAuth: true})))
-
+	mux.HandleFunc("/closeFriendList", Middleware((AuthMiddlewareHandler{Handler: users.HandleCloseFriendList, RequiresAuth: true})))
 
 	mux.HandleFunc("/", Middleware(AuthMiddlewareHandler{Handler: handleNotFound, RequiresAuth: false}))
 }

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../../modules/Avatar';
 import { ImageValidation } from '../../utils/commonFunc.js';
-import ErrorAlert from '../../modules/ErrorAlert.js';
+import ErrorAlert from '../../modules/AlertElement.js';
 
 function CreateComment(props) {
   const userId = +localStorage.getItem('user_id');

@@ -41,64 +41,40 @@ func HandleFollowOrUnfollowRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//--------------CloseFriend-----------------------
-func HandleCloseFriendRequest(w http.ResponseWriter, r *http.Request) {
-
-	sourceID, err := getUserIDFromContext(r)
-	if err != nil {
-		logger.ErrorLogger.Println("Error handling follow/unfollow request:", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var CloseFriendStr structs.CloseFriendStr
-	if err := json.NewDecoder(r.Body).Decode(&CloseFriendStr); err != nil {
-		logger.ErrorLogger.Println("Error decoding follow/unfollow request:", err)
-		http.Error(w, "Error decoding message", http.StatusBadRequest)
-		return
-	}
-
-	if CloseFriendStr.CloseFriend {
-		makeCloseFriend(w, r, sourceID, CloseFriendStr.TargetID)
-	} else {
-		breakCloseFriend(w, r, sourceID, CloseFriendStr.TargetID)
-	}
-}
-
-func HandleCloseFriendStatus(w http.ResponseWriter, r *http.Request) {
-
-	sourceID, err := getUserIDFromContext(r)
-	if err != nil {
-		logger.ErrorLogger.Println("Error handling follow/unfollow request:", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	var CloseFriendStr structs.CloseFriendStr
-	if err := json.NewDecoder(r.Body).Decode(&CloseFriendStr); err != nil {
-		logger.ErrorLogger.Println("Error decoding follow/unfollow request:", err)
-		http.Error(w, "Error decoding message "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	friend, _ := sqlQueries.CheckIfCloseFriend(sourceID, CloseFriendStr.TargetID)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{"status": "success", "close_friend": friend})
-
-}
-
 func HandleGetFollowers(w http.ResponseWriter, r *http.Request) {
-	// Get userID from the query parameters
-	userIDStr := r.URL.Query().Get("userID")
-	userID, err := strconv.Atoi(userIDStr)
+	//Get requesting userID from the context
+	val := r.Context().Value("userID")
+	requestingUserID, ok := val.(int)
+	if !ok || requestingUserID == 0 {
+		logger.ErrorLogger.Println("Error getting followers: invalid requester user ID in context")
+		http.Error(w, "Error getting followers: Invalid requester user ID in context", http.StatusInternalServerError)
+		return
+	}
+
+	// Get requested userID from the query parameters
+	requestedUserIDStr := r.URL.Query().Get("userID")
+	requestedUserID, err := strconv.Atoi(requestedUserIDStr)
 	if err != nil {
 		logger.ErrorLogger.Println("Invalid userID in the request:", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
 
-	followers, err := sqlQueries.GetUserFollowers(userID)
+	isAccess, err := sqlQueries.CheckProfileAccess(requestingUserID, requestedUserID)
 	if err != nil {
-		logger.ErrorLogger.Println("Error getting followers for userID", userID, err)
+		logger.ErrorLogger.Println("Error checking profile access to get followers:", err)
+		http.Error(w, "Error checking profile access to get followers", http.StatusInternalServerError)
+		return
+	}
+	if !isAccess {
+		logger.InfoLogger.Printf("Unauthorized request to get followers user %v -> %v", requestingUserID, requestingUserID)
+		http.Error(w, "Unauthorized request to get followers", http.StatusBadRequest)
+		return
+	}
+
+	followers, err := sqlQueries.GetUserFollowers(requestedUserID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting followers for userID", requestedUserID, err)
 		http.Error(w, "Error getting followers", http.StatusInternalServerError)
 		return
 	}
@@ -109,18 +85,38 @@ func HandleGetFollowers(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleGetFollowing(w http.ResponseWriter, r *http.Request) {
-	// Get userID from the query parameters
-	userIDStr := r.URL.Query().Get("userID")
-	userID, err := strconv.Atoi(userIDStr)
+	//Get requesting userID from the context
+	val := r.Context().Value("userID")
+	requestingUserID, ok := val.(int)
+	if !ok || requestingUserID == 0 {
+		logger.ErrorLogger.Println("Error getting following: invalid requester user ID in context")
+		http.Error(w, "Error getting following: Invalid requester user ID in context", http.StatusInternalServerError)
+		return
+	}
+
+	// Get requested userID from the query parameters
+	requestedUserIDStr := r.URL.Query().Get("userID")
+	requestedUserID, err := strconv.Atoi(requestedUserIDStr)
 	if err != nil {
 		logger.ErrorLogger.Println("Invalid userID in the request:", err)
 		http.Error(w, "Invalid userID", http.StatusBadRequest)
 		return
 	}
-
-	followingUsers, err := sqlQueries.GetUserFollowing(userID)
+	isAccess, err := sqlQueries.CheckProfileAccess(requestingUserID, requestedUserID)
 	if err != nil {
-		logger.ErrorLogger.Println("Error getting following users for userID", userID, err)
+		logger.ErrorLogger.Println("Error checking profile access to get followers:", err)
+		http.Error(w, "Error checking profile access to get followers", http.StatusInternalServerError)
+		return
+	}
+	if !isAccess {
+		logger.InfoLogger.Printf("Unauthorized request to get followers user %v -> %v", requestingUserID, requestingUserID)
+		http.Error(w, "Unauthorized request to get followers", http.StatusBadRequest)
+		return
+	}
+
+	followingUsers, err := sqlQueries.GetUserFollowing(requestedUserID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting following users for userID", requestedUserID, err)
 		http.Error(w, "Error getting following users", http.StatusInternalServerError)
 		return
 	}
@@ -204,47 +200,6 @@ func handleFollowRequest(w http.ResponseWriter, r *http.Request, sourceID int, t
 	json.NewEncoder(w).Encode(map[string]string{"status": "success", "data": successResponseMsg})
 }
 
-//-----------CloseFriend------------------
-
-func makeCloseFriend(w http.ResponseWriter, r *http.Request, sourceID int, targetID int) {
-
-	_, err := sqlQueries.MakeCloseFriend(sourceID, targetID) //sourceID, targetID, status
-	if err != nil {
-		logger.ErrorLogger.Printf("Error handling follow request for user %d to follow %d: %v", sourceID, targetID, err)
-		if strings.Contains(err.Error(), "is already following") {
-			errMsg := fmt.Sprintf("Error: User %d is already following %d", sourceID, targetID)
-			http.Error(w, errMsg, http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Error with follow request", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
-}
-
-func breakCloseFriend(w http.ResponseWriter, r *http.Request, sourceID int, targetID int) {
-
-	fmt.Println(2)
-	_, err := sqlQueries.BreakCloseFriend(sourceID, targetID) //sourceID, targetID, status
-	if err != nil {
-		logger.ErrorLogger.Printf("Error handling follow request for user %d to follow %d: %v", sourceID, targetID, err)
-		if strings.Contains(err.Error(), "is already following") {
-			errMsg := fmt.Sprintf("Error: User %d is already following %d", sourceID, targetID)
-			http.Error(w, errMsg, http.StatusBadRequest)
-			return
-		}
-		http.Error(w, "Error with follow request", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
-}
-
 func handleUnfollowRequest(w http.ResponseWriter, r *http.Request, followerID int, followingID int) {
 	err := sqlQueries.RemoveFollower(followerID, followingID)
 	if err != nil {
@@ -307,6 +262,40 @@ func (s *Service) HandleFollowRequestReply(followReqSenderID int, followReqRecei
 	if err != nil {
 		logger.ErrorLogger.Printf("Error handling follow request reply for %d->%d", followReqSenderID, followReqReceiverID)
 		return err
+	}
+
+	// If accepted, get full user data
+	var userData structs.User
+	if accepted {
+		userData = sqlQueries.GetUserFromID(followReqReceiverID)
+		if userData.ID == 0 {
+			logger.ErrorLogger.Printf("Error getting full user data for follow req reply for %d->%d", followReqSenderID, followReqReceiverID)
+			return errors.New("error getting full user data to send to requester")
+		}
+	}
+
+	// Send result to request sender if they are online
+	if websocket.IsClientOnline(followReqSenderID) {
+		var payload structs.FollowRequestResult
+
+		payload.RequestedID = followReqReceiverID
+		payload.Decision = accepted
+		if accepted {
+			payload.UserData = userData
+		}
+
+		envelopeBytes, err := websocket.ComposeWSEnvelopeMsg(config.WsMsgTypes.FOLLOW_REQ_RESULT, payload)
+		if err != nil {
+			logger.ErrorLogger.Printf("Error composing followRequestResult msg for user %d: %v\n", followReqSenderID, err)
+			return err
+		}
+
+		// Send the envelope to the recipient using WebSocket
+		err = websocket.SendMessageToUser(followReqSenderID, envelopeBytes)
+		if err != nil {
+			logger.ErrorLogger.Printf("Error sending followRequestReply msg to user %d: %v\n", followReqSenderID, err)
+			return err
+		}
 	}
 	return nil
 }

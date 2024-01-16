@@ -11,16 +11,7 @@ import (
 func CreateGroup(w http.ResponseWriter, r *http.Request) {
 	var CreateGroupStruct structs.GroupStruct
 	var responseStruct structs.GroupResponse
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		http.Error(w, "User not logged in. (session_token not found)", http.StatusUnauthorized)
-		return
-	}
-	UserID, err := sqlQueries.ValidateSession(cookie.Value)
-	if err != nil || UserID == 0 {
-		http.Error(w, "User not logged in."+err.Error(), http.StatusUnauthorized)
-		return
-	}
+	UserID := r.Context().Value("userID").(int)
 
 	if err := json.NewDecoder(r.Body).Decode(&CreateGroupStruct); err != nil {
 		http.Error(w, "error decoding: "+err.Error(), http.StatusBadRequest)

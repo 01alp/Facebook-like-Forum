@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import GroupPagination from '../modules/GroupPagination';
-import { GroupMemberList, JoinButton } from '../modules/Group';
+import { GroupMemberList, JoinButton, GroupCreateModal, CreateEventModal } from '../modules/Group';
+import { useLocation } from 'react-router-dom';
 
 const groupsPerPage = 7; // can change this for better design 
 function calculateTotalPages(count) {
@@ -9,14 +10,28 @@ function calculateTotalPages(count) {
 }
 
 const GroupPage = () => {
+  document.title = "Groups"
   const isInitialMount = useRef(true);
   const [groups, setGroups] = useState(() => {
     return [];
   });
+  const { hash } = useLocation();
+  let groupNum
+  if (hash) {
+    groupNum = parseInt(hash.split('#')[1]);
+  }
+  console.log("HAAAAAAAASH: ", groupNum);
+
   const [page, setPage] = useState(() => {
+    if (groupNum) {
+      console.log("setting to page: ", groupNum / groupsPerPage, Math.ceil(groupNum / groupsPerPage))
+      return Math.ceil(groupNum / groupsPerPage)
+    }
     return 1;
   });
   const [totalPages, setTotalPages] = useState(() => 1);
+
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
 
   const RequestGroupAdditionalInfo = useCallback((groupData) => {
     const reqOptions = {
@@ -83,11 +98,24 @@ const GroupPage = () => {
 
   return (
     <div className='w-100 d-flex justify-content-center flex-column align-items-center' id="GroupParent" style={{ height: "90%" }}>GroupPage
-      <div className="w-75 mx-5 d-flex flex-row" role="group" aria-label="Basic checkbox toggle button group" style={{ height: "4%" }}>
-        <button className='btn btn-primary rounded-3  p-0 m-0' type='button' style={{width: "5%"}}>
-          <i className="far fa-plus-square fs-3"></i>
+      {console.log("re-rendering groups page")}
+      <div className="w-75 mx-5 d-flex flex-row" role="group" aria-label="Basic checkbox toggle button group" style={{ height: "5%" }}>
+        <button className='btn btn-success shadow rounded-2 p-0 m-0 col-md-2' data-bs-toggle="modal" data-bs-target="#exampleModal" type='button'>
+          <p className='fw-bolder mb-0 mx-1 text-wrap overflow-hidden lh-1' style={{ fontSize: '2vh' }}>Create group </p>
         </button>
       </div>
+
+      <GroupCreateModal
+      />
+
+      {<CreateEventModal
+          groupId={selectedGroupId}
+          onClose={() => {
+            setSelectedGroupId(null);
+          }}
+        />
+      }
+
       <ul className='list-group h-100 w-75'>
         {!groups || groups.length === 0 ? <span className='text-center fw-bolder'>Could not fetch any groups.</span> : groups.map((item) => {
           return (
@@ -100,19 +128,35 @@ const GroupPage = () => {
                 <p className="fs-4 my-0 mb-2 lh-1 text-break" style={{ opacity: "90%" }}>{item.description}</p>
               </div>
 
-              <div className='collapse shadow' id={"group" + item.id} data-bs-parent="#GroupParent" >
+              <div className={`${groupNum && item.id === groupNum ? "collapse.show" : "collapse"} shadow `} id={"group" + item.id} data-bs-parent="#GroupParent" >
                 <div className="card card-body">
                   <div className='d-flex justify-content-between'>
                     {item.members && <GroupMemberList
                       members={item.members}
                       id={item.id}
                     />}
+
+                    <button
+                      className="btn btn-success shadow rounded-2 p-0 m-0 col-md-2"
+                      onClick={() => {
+                        setSelectedGroupId(item.id);
+                      }}
+                      style={{
+                        height: "5vh"
+                      }}
+                      data-bs-toggle="modal"
+                      data-bs-target="#createEventModal"
+                    >
+                      <p className="fw-bolder mb-0 mx-1 text-wrap overflow-hidden lh-1" style={{ fontSize: "2vh" }}>Create event</p>
+                    </button>
+
                     {item.members && <JoinButton
                       members={item.members}
                       userid={localStorage.getItem("user_id" ?? 0)}
                       groupid={item.id}
                       callback={onGroupUpdate}
                     />}
+
                   </div>
                 </div>
               </div>

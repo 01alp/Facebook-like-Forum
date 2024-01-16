@@ -2,7 +2,6 @@ package posts
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"slices"
 	"social-network/internal/logger"
@@ -49,14 +48,15 @@ func GetPostsAndCommentsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error getting followers", http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("userID=("+userIdStr+") is following users: ", followers)
-	// get []int of closest friends ids
-	closestFriends, err := sqlQueries.GetCloseFriends(userId)
+	// fmt.Println("userID=("+userIdStr+") is following users: ", followers)
+
+	// get []int of users that have target user added as close friend
+	closestFriends, err := sqlQueries.GetCloseFriends(userId, 1)
 	if err != nil {
 		http.Error(w, "Error getting close friends", http.StatusInternalServerError)
 		return
 	}
-	fmt.Println("Users that have userID=("+userIdStr+") added as friend", closestFriends)
+	// fmt.Println("Users that have userID=("+userIdStr+") added as friend", closestFriends)
 
 	for i := 0; i < len(posts); i++ {
 

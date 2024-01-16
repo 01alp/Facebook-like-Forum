@@ -171,7 +171,7 @@ var messageHandlers = map[string]func(*Client, []byte){
 
 func handleIncomingMessage(c *Client, messageType string, envelope structs.WSMessageEnvelope) {
 	if handler, ok := messageHandlers[messageType]; ok {
-		payloadBytes, err := json.Marshal(envelope.Payload) //TODO: Could avoid remarshaling here, with changing the envelope struct payload type?
+		payloadBytes, err := json.Marshal(envelope.Payload)
 		if err != nil {
 			logger.ErrorLogger.Println("Error re-marshaling payload for user:", c.ID, ":", err)
 			return

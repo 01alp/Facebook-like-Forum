@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 export const PostsContext = React.createContext({
   posts: [],
   getPosts: () => {},
-  refresh: () => {},
+  refreshPosts: () => {},
   onCreatePost: () => {},
   onCreateComment: () => {},
 });
@@ -25,7 +25,7 @@ export const PostsContextProvider = (props) => {
 
   useEffect(() => {
     // get posts
-    if (userCtx.usersList && userCtx.usersList.length > 0 && !postsLoaded) {
+    if (userCtx.usersList && userCtx.usersList.length > 0 && (!postsLoaded || refreshState)) {
       // !postsLoaded so it doesnt run every time usersList changes but only when it is first loaded
       setPostsLoaded(true);
       getPostsHandler();
@@ -110,7 +110,7 @@ export const PostsContextProvider = (props) => {
       console.log(resp.status);
       if (resp.status === 201) {
         setPostsLoaded(false);
-        refresh();
+        refreshPosts();
       } else {
         console.log(resp.status);
         console.log(await resp.text());
@@ -135,7 +135,7 @@ export const PostsContextProvider = (props) => {
 
       if (resp.ok) {
         setPostsLoaded(false);
-        refresh();
+        refreshPosts();
       } else {
         console.log(resp.status);
         console.log(await resp.text());
@@ -146,7 +146,7 @@ export const PostsContextProvider = (props) => {
     }
   };
 
-  function refresh() {
+  function refreshPosts() {
     refreshState ? setRefreshState(false) : setRefreshState(true);
   }
 
@@ -155,7 +155,7 @@ export const PostsContextProvider = (props) => {
       value={{
         posts: posts,
         getPosts: getPostsHandler,
-        refresh: refresh,
+        refreshPosts: refreshPosts,
         onCreatePost: createPostHandler,
         onCreateComment: createCommentHandler,
       }}

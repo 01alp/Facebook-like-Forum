@@ -3,17 +3,18 @@ import { Helmet } from 'react-helmet';
 import ContactList from '../chat/ContactList';
 import ChatWindow from '../chat/ChatWindow';
 import { ChatContext } from '../store/chat-context';
-import { UsersContext } from '../store/users-context';
 
 const ChatPage = () => {
   const { currentChat, handleChatSelect } = useContext(ChatContext);
-  const { usersList } = useContext(UsersContext);
   const [ chatTitle, setChatTitle] = useState("Chat")
 
-  useEffect(() => { //TODO: Needs additional handling for group name
+  useEffect(() => {
     if (currentChat.recipientId) {
-      const userData = usersList.find(user => user.id === currentChat.recipientId);
-      setChatTitle("Chat - " + userData.fname);
+      if (!currentChat.groupChat) {
+        setChatTitle("Chat - " + currentChat.recipientName);
+      } else {
+        setChatTitle("Group chat - " + currentChat.recipientName);
+      }
     } else {
       setChatTitle("Chat");
     };
@@ -21,7 +22,7 @@ const ChatPage = () => {
 
   useEffect(() => { // Set currentChat to null when navigating away from chat page
     return () => {
-      handleChatSelect(null, null);
+      handleChatSelect(null, "", null);
     };
   }, [handleChatSelect]);
 

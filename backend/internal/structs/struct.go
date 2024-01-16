@@ -5,7 +5,7 @@ import "time"
 type User struct {
 	ID           int       `json:"id"`
 	Email        string    `json:"email"`
-	Password     string    `json:"password,omitempty"` //TODO: Check that not sending pwd back to client later
+	Password     string    `json:"password,omitempty"`
 	FirstName    string    `json:"fname"`
 	LastName     string    `json:"lname"`
 	BirthDate    time.Time `json:"dob"`
@@ -65,6 +65,11 @@ type FollowRequestReply struct { //For client->server response to ws msg follow 
 	Decision    bool `json:"accepted"` //False to decline, true to accept
 }
 
+type FollowRequestResult struct { //For server->client response to follow request decision
+	RequestedID int  `json:"requestedid"`
+	Decision    bool `json:"accepted"` //False to decline, true to accept
+	UserData    User `json:"userdata,omitempty"`
+}
 
 type CloseFriendStr struct { //For http request client->server
 	TargetID    int  `json:"targetid"`
@@ -112,6 +117,7 @@ type ChatMessage struct {
 	SenderFirstName string `json:"sender_fname,omitempty"`
 	UserRecipientID int    `json:"user_recipient_id,omitempty"`
 	GroupID         int    `json:"group_id,omitempty"`
+	GroupName       string `json:"group_name,omitempty"`
 	Message         string `json:"message"`
 	CreatedAt       string `json:"createdat"`
 }
@@ -148,13 +154,15 @@ type PostMemberStruct struct {
 	UserPostId int `json:"userpostid"`
 }
 
+// -------------------------------- GROUPS ------------------------------------
+
 type GroupStruct struct {
 	Id          int    `json:"id"`
 	Title       string `json:"title"`
 	Creator     int    `json:"creator"`
 	Description string `json:"description"`
 	CreatedAt   string `json:"createdat"`
-	MemberCount int    `json:"membercount"`
+	MemberCount int    `json:"membercount,omitempty"`
 }
 
 type GroupResponse struct {
@@ -212,18 +220,18 @@ type GroupMembersStruct struct {
 	GroupId int                 `json:"groupid"`
 }
 
-type GroupEventStruct struct {
+type GroupEvent struct {
 	Id          int    `json:"id"`
 	GroupId     int    `json:"groupid"`
-	Author      int    `json:"author"`
+	CreatorId   int    `json:"creatorid"`
 	Title       string `json:"title"`
+	StartTime   string `json:"starttime"`
 	Description string `json:"description"`
 	CreatedAt   string `json:"createdat"`
-	Date        string `json:"date"`
 }
 
 type GroupEventPayload struct {
-	Data []GroupEventStruct `json:"data"`
+	Data []GroupEvent `json:"data"`
 }
 
 type GroupEventMemberStruct struct {
@@ -309,4 +317,12 @@ type NotiMessageStruct struct {
 	Type       string `json:"type"`
 	Accepted   bool   `json:"accepted"`
 	GroupTitle string `json:"grouptitle"`
+}
+
+type GroupRequestNotifStruct struct {
+	UserId    int    `json:"userid"`
+	Username  string `json:"username"`
+	GroupId   int    `json:"groupid"`
+	GroupName string `json:"groupname"`
+	CreatorId int    `json:"creatorid"`
 }

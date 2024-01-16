@@ -1,34 +1,37 @@
 import { useContext } from 'react';
 import { UsersContext } from '../store/users-context';
-import { useNavigate } from 'react-router-dom';
 import FollowNotif from './FollowNotif';
-import ChatNotif from './ChatNotif';
+import PrivateChatNotif from './PrivateChatNotif';
+import GroupChatNotif from './GroupChatNotif';
+import GroupNotif from './GroupNotif';
 
 const NotificationItems = (props) => {
-  const navigate = useNavigate();
   const usersCtx = useContext(UsersContext);
-  console.log("Props: ", props)
-  console.log(usersCtx.usersList)
   const sourceUser = usersCtx.usersList.find((user) => user.id === props.sourceId);
 
   const removeNotiHandler = () => {
-    console.log("Removing noti");
     props.onRemoveNotification(props.id);
   };
 
   let notificationContent;
   switch (props.type) {
     case 'follow-req':
-      notificationContent = <FollowNotif srcUser={sourceUser} removeNoti={removeNotiHandler}/>;
+      notificationContent = <FollowNotif srcUser={sourceUser} removeNoti={removeNotiHandler} />;
       break;
-    case 'chat-msg':
-      notificationContent = <ChatNotif srcUser={sourceUser} removeNoti={removeNotiHandler}/>; //TODO: For group chat noti needs group info. Perhaps separate "private-chat-msg" and "group-chat-msg" notis?
+    case 'private-chat-msg':
+      notificationContent = <PrivateChatNotif srcUser={sourceUser} removeNoti={removeNotiHandler} />;
+      break;
+    case 'group-chat-msg':
+      notificationContent = <GroupChatNotif srcUser={sourceUser} groupId={props.groupId} groupName={props.groupName} removeNoti={removeNotiHandler} />;
+      break;
+    case 'new_group_request':
+      notificationContent = <GroupNotif srcUser={sourceUser} groupPayload={props.groupPayload} removeNoti={removeNotiHandler} />;
       break;
     default:
-      notificationContent = <div>Unknown notification type</div>;
+      notificationContent = <div>Unknown notification type ({props.type})</div>;
   }
 
-  return <div>{notificationContent}</div>
+  return <div>{notificationContent}</div>;
 };
 
 export default NotificationItems;

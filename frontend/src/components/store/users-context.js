@@ -22,6 +22,7 @@ export const UsersContextProvider = (props) => {
     const options = {
       method: 'POST',
       mode: 'cors',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -30,9 +31,6 @@ export const UsersContextProvider = (props) => {
       const resp = await fetch(userUrl, options);
       if (resp.ok) {
         const data = await resp.json();
-
-        // usersArr.sort((a, b) => a.id - b.id);
-        // console.log('Users data: ', data);
         setUsersList(data);
       } else {
         throw new Error('Failed to fetch');
@@ -42,16 +40,27 @@ export const UsersContextProvider = (props) => {
     }
   };
 
-  // useEffect(getUsersHandler, []);
-  // useEffect(getInitialUserPrivacy, []);
+  const updateUserInList = (updatedUserData) => {
+    setUsersList(currentUsersList => {
+      console.log("Current users list: ", currentUsersList)
+      return currentUsersList.map(user => {
+        console.log("updatedUserData: ", updatedUserData)
+        console.log("Current user in map: ", user)
+        if (user.id === updatedUserData.id) {
+          return { ...user, ...updatedUserData };
+        }
+        return user;
+      });
+    });
+  };
 
   return (
     <UsersContext.Provider
       value={{
         usersList: usersList,
+        updateUserInList: updateUserInList,
         onNewUserReg: getUsersHandler,
         onUserLogin: getUsersHandler,
-        // onlineUsers: onlineUsersList,
         getUsers: getUsersHandler,
       }}
     >

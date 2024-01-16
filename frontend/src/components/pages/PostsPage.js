@@ -6,7 +6,7 @@ import CreateComment from '../posts/comments/CreateComment.js';
 import AllPosts from '../posts/AllPosts.js';
 import UserEvent from '../posts/UserEvent';
 import AllUsers from '../posts/AllUsers';
-import JoinedGroup from '../group/JoinedGroup';
+import JoinedGroup from '../groups/JoinedGroup';
 import { PostsContext } from '../store/posts-context.js';
 
 const PostsPage = () => {
@@ -22,7 +22,7 @@ const PostsPage = () => {
           {/* Start: leftColumn */}
           <div className="col-12 col-sm-12 col-md-12 col-lg-3 col-xl-3 col-xxl-3">
             <AllUsers />
-            <JoinedGroup />
+            <JoinedGroup currentUser={true} />
             <UserEvent />
           </div>
           {/* End: leftColumn */}
@@ -41,7 +41,7 @@ const PostsPage = () => {
             {/* End: makePostDiv */}
             {/* Start: refreshDiv */}
             <div className="refresh" style={{ marginTop: 15, marginBottom: 15, textAlign: 'right' }}>
-              <button className="btn" type="button" style={{ borderRadius: 30 }} onClick={postsCtx.refresh}>
+              <button className="btn" type="button" style={{ borderRadius: 30 }} onClick={postsCtx.refreshPosts}>
                 <i
                   className="fas fa-redo"
                   data-bss-hover-animate="pulse"

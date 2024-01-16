@@ -35,6 +35,8 @@ const AllNotificationItems = (props) => {
               sourceId={notiItem.sourceid}
               createdAt={notiItem.createdat}
               groupId={notiItem.groupid}
+              groupName={notiItem.groupname}
+              groupPayload={notiItem.groupPayload}
               onRemoveNotification={() => removeNotification(notiItem.id)}
             />
           );

@@ -14,7 +14,6 @@ func MakeCloseFriend(sourceID, friendID int) (bool, error) {
 		SELECT EXISTS(
 			SELECT 1 FROM close_friends
 			WHERE (source_id = $1 AND friend_id = $2)
-				OR (source_id = $2 AND friend_id = $1)
 		)
 	`
 	err := database.DB.QueryRow(query, sourceID, friendID).Scan(&friendshipExists)
@@ -46,7 +45,6 @@ func BreakCloseFriend(sourceID, friendID int) (bool, error) {
 		SELECT EXISTS(
 			SELECT 1 FROM close_friends
 			WHERE (source_id = $1 AND friend_id = $2)
-				OR (source_id = $2 AND friend_id = $1)
 		)
 	`
 	err := database.DB.QueryRow(query, sourceID, friendID).Scan(&friendshipExists)
@@ -63,7 +61,6 @@ func BreakCloseFriend(sourceID, friendID int) (bool, error) {
 	_, err = database.DB.Exec(`
 		DELETE FROM close_friends
 		WHERE (source_id = $1 AND friend_id = $2)
-			OR (source_id = $2 AND friend_id = $1)
 	`, sourceID, friendID)
 	if err != nil {
 		log.Printf("Error breaking friends between %d and %d: %v\n", sourceID, friendID, err)
@@ -82,7 +79,6 @@ func CheckIfCloseFriend(sourceID, friendID int) (bool, error) {
 		SELECT EXISTS(
 			SELECT 1 FROM close_friends
 			WHERE (source_id = $1 AND friend_id = $2)
-				OR (source_id = $2 AND friend_id = $1)
 		)
 	`
 	err := database.DB.QueryRow(query, sourceID, friendID).Scan(&friendshipExists)

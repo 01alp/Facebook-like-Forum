@@ -9,7 +9,9 @@ type wsMessageTypes struct {
 	CHAT_MSGS_REPLY    string
 	FOLLOW_REQ         string
 	FOLLOW_REQ_REPLY   string
+	FOLLOW_REQ_RESULT  string
 	MSG_HANDLING_ERROR string
+	NEW_GROUP_REQUEST  string
 }
 
 var WsMsgTypes = wsMessageTypes{
@@ -21,5 +23,7 @@ var WsMsgTypes = wsMessageTypes{
 	CHAT_MSGS_REPLY:    "chatMessagesReply",
 	FOLLOW_REQ:         "followRequest",
 	FOLLOW_REQ_REPLY:   "followRequestReply",
+	FOLLOW_REQ_RESULT:  "followRequestResult",
 	MSG_HANDLING_ERROR: "messageHandlingError",
+	NEW_GROUP_REQUEST:  "newGroupRequest",
 }

@@ -2,36 +2,44 @@ import { useEffect, useState, useContext } from 'react';
 import { FollowingContext } from '../store/following-context';
 import { UsersContext } from '../store/users-context';
 import { WebSocketContext } from '../store/websocket-context';
+import { GroupContextProvider } from '../store/group-context';
+import { PostsContext } from '../store/posts-context.js';
 import FollowerModal from './FollowerModal';
 import FollowingModal from './FollowingModal';
 import Avatar from '../modules/Avatar';
 import { Link } from 'react-router-dom';
-import JoinedGroup from '../group/JoinedGroup';
+import JoinedGroup from '../groups/JoinedGroup';
 import UserEvent from '../posts/UserEvent';
+import ErrorPage from '../pages/ErrorPage';
+import CloseFriends from './CloseFriends';
 
 function Profile({ userId }) {
-  console.log('***************   userId ', userId);
+  // console.log('***************   userId ', userId);
   const [followerData, setFollowerData] = useState([]);
   const [followingData, setFollowingData] = useState([]);
   const [isFollower, setIsFollower] = useState(false);
 
   const [targetUser, setTargetUser] = useState(null);
 
-  const [publicity, setPublicity] = useState(true); // 1 true is public, 0 false is private
+  const [publicity, setPublicity] = useState(null); // true is public, false is private
   const selfPublicNum = +localStorage.getItem('public');
   const [pubCheck, setPubCheck] = useState(false);
   // friend
   const followingCtx = useContext(FollowingContext);
   const usersCtx = useContext(UsersContext);
-  const wsCtx = useContext(WebSocketContext);
+  const { followRequestResult, setFollowRequestResult } = useContext(WebSocketContext);
+  const { refreshPosts }= useContext(PostsContext);
 
   const currUserId = localStorage.getItem('user_id');
 
   const [followStatus, setFollowStatus] = useState(null); //0-pending, 1-accepted, 2-declined, 3-not following
-  const [isCloseFriend, setCloseFriend] = useState(false);
+  const [closeFriendList, setCloseFriendList] = useState([]);
+  const [isChatable, setIsChatable] = useState(false);
+  const [profileAccessibility, setProfileAccessibility] = useState(false); //Public profile or private followed profile is accesible
 
   const getFollowerHandler = () => {
-    console.log('apis getting called');
+    console.log("Getting followers for user: ", targetUser.fname)
+    // console.log('apis getting called');
     fetch(`http://localhost:8080/getFollowers?userID=${userId}`, {
       credentials: 'include',
     })
@@ -42,7 +50,7 @@ function Profile({ userId }) {
         return resp.json();
       })
       .then((data) => {
-        console.log('followersArr (context): ', data);
+        // console.log('followersArr (context): ', data);
         setFollowerData(data.data);
       })
       .catch((err) => console.log('Error fetching followers:', err));
@@ -59,7 +67,7 @@ function Profile({ userId }) {
         return resp.json();
       })
       .then((data) => {
-        console.log('followingArr (context): ', data);
+        // console.log('followingArr (context): ', data);
         setFollowingData(data.data);
       })
       .catch((err) => console.log('Error fetching following:', err));
@@ -68,6 +76,19 @@ function Profile({ userId }) {
   useEffect(() => {
     followingData && setIsFollower(followingData.some((follower) => follower.id == currUserId));
   }, [followingData]);
+
+  // Check if can chat with user. To chat, current user must follow or be followed by them.
+  useEffect(() => {
+    const checkChatable = () => {
+      return (
+        (followingData && followingData.some((follower) => follower.id == currUserId)) ||
+        (followerData && followerData.some((follower) => follower.id == currUserId))
+      );
+    };
+
+    const chatableStatus = checkChatable();
+    setIsChatable(chatableStatus);
+  }, [followingData, followerData, currUserId]);
 
   const getCurrentFollowStatus = () => {
     fetch(`http://localhost:8080/getFollowStatus?targetID=${userId}`, {
@@ -91,23 +112,48 @@ function Profile({ userId }) {
       .catch((err) => console.log('Error fetching follow status:', err));
   };
 
+  useEffect(() => { // Set profile accessibility after knowing publicity and followStatus
+    if (pubCheck || followStatus === 1 || userId === currUserId) {
+      setProfileAccessibility(true);
+    } else {
+      setProfileAccessibility(false);
+    };
+  }, [pubCheck, followStatus])
+
+  useEffect(() => { // After knowing profileAccesibility & profile is accesible, get followers and following
+    if (profileAccessibility) {
+      getFollowerHandler();
+      getFollowingHandler();
+    }
+  }, [userId, profileAccessibility])
+
+  useEffect(() => { //To get the result of follow request from ws and update profile accordingly
+    if (followRequestResult && followRequestResult.userId == userId) {
+      setFollowStatus(followRequestResult.status ? 1 : 2);
+      setFollowRequestResult(null);
+      if (followRequestResult.status === true) {
+        refreshPosts();
+      }
+    }
+  }, [followRequestResult, setFollowRequestResult, userId]);
+
   useEffect(() => {
-    getFollowerHandler();
-    getFollowingHandler();
     getCurrentFollowStatus();
 
     const foundUser = usersCtx.usersList.find((user) => user.id === +userId);
 
     if (foundUser) {
+      document.title = foundUser.fname + " " + foundUser.lname;
       setTargetUser(foundUser); // Set targetUser state
       if (foundUser.public != 0) {
         setPubCheck(true);
       }
+    } else {
+      setTargetUser('not found');
     }
   }, [userId, usersCtx.usersList]);
 
-  // console.log('stored publicity (profile)', selfPublicNum);
-  // console.log('checkingTargetUser', targetUser);
+
   useEffect(() => {
     selfPublicNum ? setPublicity(true) : setPublicity(false);
   }, [selfPublicNum]);
@@ -120,7 +166,6 @@ function Profile({ userId }) {
   }, [isChecked]);
 
   const followHandler = async () => {
-    console.log('got the message  ');
     const response = await followingCtx.requestToFollowOrUnfollow(targetUser, true);
     if (response !== null) {
       switch (response) {
@@ -138,11 +183,11 @@ function Profile({ userId }) {
   };
 
   const unfollowHandler = async () => {
-    console.log('got the message  ');
     const response = await followingCtx.requestToFollowOrUnfollow(targetUser, false);
     if (response && response === 'Unfollow successful') {
       getFollowerHandler(); //NOTE: Could update followers list without fetching from API
       setFollowStatus(3);
+      refreshPosts();
     }
   };
 
@@ -174,7 +219,6 @@ function Profile({ userId }) {
         return response.json();
       })
       .then(() => {
-        console.log('privacy changed');
         setPublicity(isPublic); // Update the publicity state
         setPubCheck(isPublic); // Update the pubCheck state for re-rendering
         localStorage.setItem('public', publicityNum); // Update local storage
@@ -185,12 +229,7 @@ function Profile({ userId }) {
   };
 
   useEffect(() => {
-    //console.log('target user : ', targetUser);
     if (targetUser) {
-      // console.log('usersList', foundUser);
-      // setFollowerData(followingCtx.followers);
-      //console.log('target user : ', targetUser);
-      // setFollowingData(followingCtx.following)
       if (targetUser.public == 0) {
         localStorage.setItem('isChecked', true);
       } else {
@@ -198,15 +237,19 @@ function Profile({ userId }) {
       }
     }
   }, [targetUser]);
+
   function closeFriendHandler(e) {
     // Toggle the isCloseFriend state
-    setCloseFriend(!isCloseFriend);
-    if (isCloseFriend) {
+    console.log(e.target.id, e.target.getAttribute('isclosefriend'));
+
+    if (e.target.getAttribute('isclosefriend') === 'true') {
+      // IS CLOSE FRIEND
+      // REMOVE FROM CLOSE FRIEND LIST
       const data = {
-        sourceid: parseInt(e.target.id),
-        targetid: parseInt(targetUser.id),
+        targetid: parseInt(e.target.id),
         close_friend: false,
       };
+      console.log(data);
 
       const cfOptions = {
         method: 'POST',
@@ -218,12 +261,14 @@ function Profile({ userId }) {
         body: JSON.stringify(data),
       };
 
+      console.log('removing close friend...');
       fetch('http://localhost:8080/closeFriend', cfOptions)
         .then((resp) => resp.json())
         .then((data) => {
           console.log('closefriend event: ', data);
-          if (data.success) {
-            console.log('closefriendchanges');
+          if (data.status) {
+            console.log('User ', currUserId, ' is no longer a close friend with user ', e.target.id);
+            setCloseFriendList(closeFriendList.filter((id) => id !== parseInt(e.target.id)));
           } else {
             console.log('could not process closeFriend handler, failer');
           }
@@ -231,11 +276,11 @@ function Profile({ userId }) {
         .catch((err) => {
           console.log('closefriend event: ', err);
         });
-      setCloseFriend(false);
     } else {
+      // IS NOT CLOSE FRIEND
+      // ADD TO CLOSE FRIEND LIST
       const data = {
-        sourceid: parseInt(e.target.id),
-        targetid: parseInt(targetUser.id),
+        targetid: parseInt(e.target.id),
         close_friend: true,
       };
 
@@ -249,12 +294,18 @@ function Profile({ userId }) {
         body: JSON.stringify(data),
       };
 
+      console.log('adding close friend...');
       fetch('http://localhost:8080/closeFriend', cfOptions)
         .then((resp) => resp.json())
         .then((data) => {
           console.log('closefriend event: ', data);
-          if (data.success) {
-            console.log('closefriendchanges');
+          if (data.status) {
+            console.log('User', currUserId, 'added', e.target.id, 'as a close friend');
+            if (!closeFriendList.length) {
+              setCloseFriendList([parseInt(e.target.id)]);
+            } else {
+              setCloseFriendList([...closeFriendList, parseInt(e.target.id)]);
+            }
           } else {
             console.log('could not process closeFriend handler, failer');
           }
@@ -262,16 +313,10 @@ function Profile({ userId }) {
         .catch((err) => {
           console.log('closefriend event: ', err);
         });
-      setCloseFriend(true);
     }
   }
 
   useEffect(() => {
-    const data = {
-      sourceid: parseInt(currUserId),
-      targetid: parseInt(userId),
-    };
-
     const cfOptions = {
       method: 'POST',
       credentials: 'include',
@@ -279,33 +324,25 @@ function Profile({ userId }) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(data),
     };
 
-    fetch('http://localhost:8080/closeFriendStatus', cfOptions)
+    fetch('http://localhost:8080/closeFriendList', cfOptions)
+      // TODO: return list of close friends ids here
       .then((response) => response.json())
       .then((data) => {
-        console.log(data.close_friend == true, data.close_friend, data);
-
-        if (data.close_friend == true) {
-          setCloseFriend(true);
-        } else {
-          setCloseFriend(false);
-        }
+        // console.log(data);
+        setCloseFriendList(data.close_friends || []);
       })
       .catch((error) => {
         console.log({ error });
       });
   }, [userId]);
 
-  if (!targetUser) return <div>Loading...</div>;
-
   let followButton;
   let messageButton;
-  let closeFriend;
-  let closeFriendText;
 
   if (currUserId !== userId) {
+    // IF NOT OWN PROFILE
     switch (followStatus) {
       case 0: //Pending request
         followButton = (
@@ -350,34 +387,48 @@ function Profile({ userId }) {
           </div>
         );
         break;
+      case null: {
+        break;
+      }
       default:
-        console.log('Unexptected follow status:', followStatus);
+        console.log('Unexpected follow status:', followStatus);
     }
 
     messageButton = (
       <div>
-        <Link className="btn btn-primary btn-sm" role="button" style={{ marginRight: 5 }} to="/chat">
-          Message
-        </Link>
+        {isChatable ? (
+          <Link className="btn btn-primary btn-sm" role="button" style={{ marginRight: 5 }} to="/chat">
+            Message
+          </Link>
+        ) : (
+          <div className="btn btn-secondary btn-sm" style={{ marginRight: 5, pointerEvents: 'none' }}>
+            Message
+          </div>
+        )}
       </div>
     );
-    closeFriend = (
-      <input
-        className="form-check-input"
-        type="checkbox"
-        style={{ fontSize: 24, marginRight: 5 }}
-        id={userId}
-        checked={isCloseFriend}
-        onChange={closeFriendHandler}
-      />
-      // onChange={closeFriendHandler}
-    );
-    closeFriendText = <span style={{ marginLeft: 5 }}>Ad to OnlyFans</span>;
   }
+
+  if (targetUser === null) {
+    return <div>Loading...</div>;
+  }
+
+  if (targetUser === 'not found') {
+    return <ErrorPage errorMessage="User not found" errorCode=" " />;
+  }
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  };
 
   return (
     <div className="container-fluid">
-      <h3 className="text-dark mb-4">Profile</h3>
+      <h3 className="text-dark mb-4">{targetUser.fname} {targetUser.lname}</h3>
       <div className="row mb-3">
         <div className="col-lg-4">
           {/* Start: Avatarimage */}
@@ -386,43 +437,42 @@ function Profile({ userId }) {
               <div className="d-flex justify-content-center align-items-center">
                 <Avatar src={targetUser.avatar} showStatus={false} width={150} />
               </div>
-              <div className="mb-3">
-                <button className="btn btn-primary btn-sm" type="button">
-                  Change Photo
-                </button>
-              </div>
             </div>
           </div>
           {/* End: Avatarimage */}
           {/* Start: Aboutme */}
-          <div className="card shadow mb-4">
-            <div className="card-header py-3">
-              <h6 className="text-primary fw-bold m-0">About:</h6>
-            </div>
-            <div className="card-body">
-              {/* Start: Profile About Container */}
-              <div>
-                <div>
-                  <span>{targetUser.about}</span>
-                </div>
+          { profileAccessibility && (
+            <div className="card shadow mb-4">
+              <div className="card-header py-3">
+                <h6 className="text-primary fw-bold m-0">About:</h6>
               </div>
-              {/* End: Profile About Container */}
-            </div>
-          </div>
+              <div className="card-body">
+                {/* Start: Profile About Container */}
+                <div>
+                  <div>
+                    <span>{targetUser.about}</span>
+                  </div>
+                </div>
+                {/* End: Profile About Container */}
+              </div>
+            </div> )}
           {/* End: Aboutme */}
           {/* Start: joinedGroupsDiv */}
-          <div className="joinedGroups" style={{ padding: 5, marginTop: 20 }}>
-            <h5>Your Groups:</h5>
-            {/* Start: joinedGroupContainerDiv */}
-            <div className=" joinedGroupContainer" style={{ margin: 5 }}>
-              <JoinedGroup />
-            </div>
-          </div>
+          { profileAccessibility && (
+            <div className="joinedGroups" style={{ padding: 5, marginTop: -20 }}>
+              <div className=" joinedGroupContainer" style={{ margin: 5 }}>
+                <GroupContextProvider userId={userId}>
+                  <JoinedGroup currentUser={userId === currUserId} />
+                </GroupContextProvider>
+              </div>
+            </div> )}
+          {/* End: joinedGroupsDiv */}
           {/* Start: upcomingEventsDiv */}
+          { profileAccessibility && (
           <div className="upcomingEvents" style={{ padding: 5, marginTop: 20 }}>
             <h5>Upcoming Events:</h5>
             <UserEvent />
-          </div>
+          </div> )}
           {/* End: upcomingEventsDiv */}
         </div>
         <div className="col-lg-8">
@@ -462,114 +512,99 @@ function Profile({ userId }) {
                     <div>{messageButton}</div>
                   </div>
                 </div>
-                <div className="card-body">
-                  <div>
-                    <div className="row">
-                      <div className="col">
-                        {/* Start: Profile row */}
-                        <div className="mb-3">
-                          <label className="form-label" htmlFor="username">
-                            <strong>User info:</strong>
-                          </label>
-                          {/* Start: Username and image */}
-                          <div className="d-flex align-items-lg-center">
-                            <div className="profilename">
-                              <span>
-                                {targetUser.fname} {targetUser.lname}
-                              </span>
+                { profileAccessibility && (
+                  <div className="card-body">
+                    <div>
+                      <div className="row">
+                        <div className="col">
+                          {/* Start: Profile row */}
+                          <div className="mb-3">
+                            <label className="form-label" htmlFor="username">
+                              <strong>Name:</strong>
+                            </label>
+                            {/* Start: Username and image */}
+                            <div className="d-flex align-items-lg-center">
+                              <div className="profilename">
+                                <span>
+                                  {targetUser.fname} {targetUser.lname}
+                                </span>
+                              </div>
+                              <div />
                             </div>
-                            <div />
+                          </div>
+                        </div>
+                        <div className="col">
+                          <div className="mb-3">
+                            <label className="form-label" htmlFor="email">
+                              <strong>Email:</strong>
+                            </label>
+                            <div className="profileEmail">
+                              <span>{targetUser.email}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                      <div className="col">
-                        <div className="mb-3">
-                          <label className="form-label" htmlFor="email">
-                            <strong>Email Address:</strong>
-                          </label>
-                          <div className="profileEmail">
-                            <span>{targetUser.email}</span>
+                      <div className="row">
+                        <div className="col">
+                          {/* Start: ProfileUserName */}
+                          <div className="mb-3">
+                            <label className="form-label" htmlFor="first_name">
+                              <strong>Username:</strong>
+                            </label>
+                            {/* Start: profileusernameDiv */}
+                            <div className="profileUserName">
+                              <span>{targetUser.nname}</span>
+                            </div>
+                            {/* End: profileusernameDiv */}
                           </div>
+                          {/* End: ProfileUserName */}
+                        </div>
+                        <div className="col">
+                          {/* Start: Birthday container */}
+                          <div className="mb-3">
+                            <label className="form-label" htmlFor="last_name">
+                              <strong>Date of Birth:</strong>
+                            </label>
+                            {/* Start: dateofBirth */}
+                            <div className="profileDateofBirth">
+                              <span>{formatDate(targetUser.dob)}</span>
+                            </div>
+                            {/* End: dateofBirth */}
+                          </div>
+                          {/* End: Birthday container */}
                         </div>
                       </div>
                     </div>
-                    <div className="row">
-                      <div className="col">
-                        {/* Start: ProfileUserName */}
-                        <div className="mb-3">
-                          <label className="form-label" htmlFor="first_name">
-                            <strong>User Name:</strong>
-                          </label>
-                          {/* Start: profileusernameDiv */}
-                          <div className="profileUserName">
-                            <span>{targetUser.nname}</span>
-                          </div>
-                          {/* End: profileusernameDiv */}
-                        </div>
-                        {/* End: ProfileUserName */}
-                      </div>
-                      <div className="col">
-                        {/* Start: Birthday container */}
-                        <div className="mb-3">
-                          <label className="form-label" htmlFor="last_name">
-                            <strong>Date of Birth:</strong>
-                          </label>
-                          {/* Start: dateofBirth */}
-                          <div className="profileDateofBirth">
-                            <span>{targetUser.dob.split('-').slice(0, 2).join('-')}</span>
-                          </div>
-                          {/* End: dateofBirth */}
-                        </div>
-                        {/* End: Birthday container */}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  </div> )}
               </div>
               {/* End: User profile info */}
               {/* Start: followers following */}
-              <div className="card shadow">
-                <div className="card-header py-3">
-                  <p className="text-primary m-0 fw-bold">Followers:</p>
-                </div>
-                <div className="card-body">
-                  {/* Start: profile followers container */}
-                  <div className="d-flex profileFollowers">
-                    {/* Start: profile followers */}
-                    <FollowerModal followers={followerData} />
-                    {/* End: profile followers */}
-
-                    {/* Start: profiles following */}
-                    <FollowingModal following={followingData} />
-                    {/* End: profiles following */}
+              { profileAccessibility && (
+                <div className="card shadow">
+                  <div className="card-header py-3">
+                    <p className="text-primary m-0 fw-bold">Followers:</p>
                   </div>
-                  {/* End: profile followers container */}
-                </div>
-              </div>
-              {/* End: followers following */}
-              {/* Start: CloseFriends */}
-              <div className="card shadow" style={{ marginTop: 15 }}>
-                <div className="card-header py-3">
-                  <p className="text-primary m-0 fw-bold">OnlyFans:</p>
-                </div>
-                <div className="card-body">
-                  {/* Start: Onlyfans Container */}
-                  <div className="d-flex onlyfansContainer">
-                    {/* Start: OnlyFansDiv */}
-                    <div className="onlyFansDiv" style={{ marginRight: 10 }}>
-                      {isFollower && (
-                        <div className="form-check d-lg-flex align-items-lg-center" style={{ margin: 5 }}>
-                          {closeFriend}
-                          {closeFriendText}
-                        </div>
-                      )}
+                  <div className="card-body">
+                    {/* Start: profile followers container */}
+                    <div className="d-flex profileFollowers">
+                      {/* Start: profile followers */}
+                      <FollowerModal
+                        followers={followerData}
+                        closeFriendList={closeFriendList}
+                        isOwnProfile={userId === currUserId}
+                        closeFriendHandler={closeFriendHandler}
+                      />
+                      {/* End: profile followers */}
+
+                      {/* Start: profiles following */}
+                      <FollowingModal following={followingData} />
+                      {/* End: profiles following */}
                     </div>
-
-                    {/* End: OnlyFansDiv */}
+                    {/* End: profile followers container */}
                   </div>
-                  {/* End: Onlyfans Container */}
-                </div>
-              </div>
+                </div> )}
+              {/* End: followers following */}
+              <CloseFriends closeFriendList={closeFriendList} followers={followerData} isOwnProfile={userId === currUserId} />
             </div>
           </div>
         </div>

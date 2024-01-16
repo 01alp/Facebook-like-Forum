@@ -35,7 +35,6 @@ func RequestExists(userid, groupid int) bool {
 		logger.ErrorLogger.Println(err)
 		return false
 	}
-	fmt.Println("CHECK:", exists)
 
 	return exists // probably need to change this part once we decide how to handle denied requests.
 }
@@ -191,19 +190,52 @@ func GetGroups(amount, offset int) ([]structs.GroupStruct, error) { // allows to
 	return Groups, nil
 }
 
+func GetJoinedGroups(userID int) ([]structs.GroupStruct, error) {
+	var joinedGroups []structs.GroupStruct
+
+	query := `
+		SELECT g.*
+		FROM group_members gm
+		JOIN groups g ON gm.group_id = g.id
+		WHERE gm.user_id = ?` //TODO: Not considering invite status at the moment
+
+	rows, err := database.DB.Query(query, userID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error quering db for joined groups", err.Error())
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var Group structs.GroupStruct
+		if err := rows.Scan(&Group.Id, &Group.Creator, &Group.Title, &Group.Description, &Group.CreatedAt); err != nil {
+			logger.ErrorLogger.Println("Error scanning rows for joined groups", err.Error())
+			return nil, err
+		}
+
+		joinedGroups = append(joinedGroups, Group)
+	}
+
+	return joinedGroups, nil
+}
+
 func GetGroupMembers(groupid int) (structs.GroupMembersStruct, error) {
 	var Members structs.GroupMembersStruct
 	rows, err := database.DB.Query(`
-	SELECT u.id, u.username, r.request_status, gr.creator_id 
-        FROM users u 
-        LEFT JOIN group_members g 
-        ON g.user_id = u.id 
-        LEFT JOIN group_requests r
-        ON r.user_id = u.id AND r.request_status != 2
-		LEFT JOIN groups gr 
-		ON gr.creator_id = u.id AND gr.id = $1 
-        WHERE g.group_id = $1 or r.group_id = $1
-		ORDER BY gr.creator_id DESC, r.request_status DESC
+	SELECT
+	u.id, 
+	u.username, 
+	r.request_status,
+	MAX(CASE
+	WHEN (u.id = gr.creator_id)  THEN 3 
+	WHEN (g.user_id = u.id AND r.request_status = 1) THEN 0
+	ELSE -1
+	END) Status
+	FROM group_members g ,group_requests r, groups gr, users u 
+	WHERE (g.group_id = $1 AND g.user_id = u.id AND gr.id = $1) OR (r.user_id = u.id AND r.group_id = $1 AND gr.id = $1)
+	GROUP BY u.id
+	ORDER BY Status DESC
+	;
 	`, groupid) // this query could be optimized a lot probably
 	if err != nil {
 		logger.ErrorLogger.Println(err.Error())
@@ -212,30 +244,11 @@ func GetGroupMembers(groupid int) (structs.GroupMembersStruct, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var statusInt sql.NullInt16
-		var creatorId sql.NullInt16
+		var empty int
 		var Member structs.GroupMemberStruct
-		if err := rows.Scan(&Member.UserId, &Member.Username, &statusInt, &creatorId); err != nil {
+		if err := rows.Scan(&Member.UserId, &Member.Username, &empty, &Member.Status); err != nil {
 			logger.ErrorLogger.Println(err.Error())
 			return Members, err
-		}
-		var alreadyExists bool
-		for _, member := range Members.Members {
-			if member.UserId == Member.UserId {
-				alreadyExists = true
-				break
-			}
-		}
-		if alreadyExists {
-			continue
-		}
-
-		if statusInt.Valid {
-			Member.Status = int(statusInt.Int16)
-		} else if creatorId.Valid {
-			Member.Status = 3 // means that the member is the creator of the group.
-		} else {
-			continue // skips to next member
 		}
 
 		Members.GroupId = groupid
@@ -316,4 +329,47 @@ func RemoveUserFromGroup(userid, groupid int) error { // currently also removes 
 	}
 
 	return err
+}
+
+func GetGroup(groupid int) structs.GroupStruct {
+	var group structs.GroupStruct
+	err := database.DB.QueryRow(`SELECT * FROM groups WHERE id = ?`, groupid).Scan(&group.Id, &group.Creator, &group.Title, &group.Description, &group.CreatedAt)
+	if err != nil {
+		logger.ErrorLogger.Println("ERROR: ", err)
+	}
+	return group
+}
+
+func GetGroupName(groupID int) (string, error) {
+	var groupName string
+	err := database.DB.QueryRow(`SELECT title FROM groups WHERE id = ?`, groupID).Scan(&groupName)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting group name:", err)
+		return "", err
+	}
+	return groupName, nil
+}
+
+func IsCreator(groupID, userID int) bool {
+	var creatorid int
+	err := database.DB.QueryRow(`SELECT creator_id FROM groups WHERE id = ? AND creator_id = ?`, groupID, userID).Scan(&creatorid)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting group name:", err)
+		return false
+	}
+
+	return true
+}
+
+func KickFromGroup(groupID, userID, userToKickID int) bool {
+	if !IsCreator(groupID, userID) || userID == userToKickID {
+		return false
+	}
+	err := RemoveUserFromGroup(userToKickID, groupID)
+	if err != nil {
+		logger.ErrorLogger.Println("Got error KickFromGroup: ", err)
+		return false
+	}
+
+	return true
 }

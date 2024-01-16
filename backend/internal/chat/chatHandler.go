@@ -33,11 +33,23 @@ func HandleGetChatHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messages, err := sqlQueries.GetChatHistory(userID, request.RecipientID)
-	if err != nil {
-		logger.ErrorLogger.Println("Error getting chat history:", err)
-		http.Error(w, "Error getting chat history", http.StatusBadRequest)
-		return
+	var messages []structs.ChatMessage
+	var err error
+
+	if !request.GroupChat {
+		messages, err = sqlQueries.GetUserChatHistory(userID, request.RecipientID)
+		if err != nil {
+			logger.ErrorLogger.Println("Error getting user chat history:", err)
+			http.Error(w, "Error getting user chat history", http.StatusBadRequest)
+			return
+		}
+	} else {
+		messages, err = sqlQueries.GetGroupChatHistory(request.RecipientID)
+		if err != nil {
+			logger.ErrorLogger.Println("Error getting group chat history:", err)
+			http.Error(w, "Error getting group chat history", http.StatusBadRequest)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -77,7 +89,7 @@ func HandleNewMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go attemptToSendMessages([]structs.ChatMessage{message})
+	go attemptToSendNewMessage(message)
 
 	response := structs.ChatMessageResponse{
 		Status:  "success",
@@ -134,20 +146,36 @@ func storeMessageAndUpdateID(message *structs.ChatMessage) error {
 		return err
 	}
 	if !message.GroupChat {
-		err := sqlQueries.AddChatReceipt(messageID, message.UserRecipientID)
+		err := sqlQueries.AddChatReceipts(messageID, []int{message.UserRecipientID})
 		if err != nil {
 			return err
 		}
 	} else {
-		//TODO: For group chat add receipt for each recipient
-		return errors.New("groupChat not implemented")
+		allGroupMembers, err := sqlQueries.GetGroupMembers(message.GroupID)
+		if err != nil {
+			return err
+		}
+
+		var recipientMembers []int
+
+		for _, member := range allGroupMembers.Members {
+			if member.UserId == message.SenderID {
+				continue
+			}
+			recipientMembers = append(recipientMembers, member.UserId)
+		}
+
+		err = sqlQueries.AddChatReceipts(messageID, recipientMembers)
+		if err != nil {
+			return err
+		}
 	}
 
 	message.ID = int(messageID)
 	return nil
 }
 
-func attemptToSendMessages(messages []structs.ChatMessage) {
+func attemptToSendNewMessage(message structs.ChatMessage) {
 	// Safety net to recover from any panic within the goroutine
 	defer func() {
 		if r := recover(); r != nil {
@@ -155,24 +183,46 @@ func attemptToSendMessages(messages []structs.ChatMessage) {
 		}
 	}()
 
-	for _, message := range messages {
-		if message.GroupChat {
-			//TODO: Implement group message sending logic
-			continue
-		}
-		targetID := message.UserRecipientID
-		if !websocket.IsClientOnline(targetID) {
-			return
-		}
+	var targetIDs []int
 
-		envelopeBytes, err := websocket.ComposeWSEnvelopeMsg(config.WsMsgTypes.CHAT_MSGS, messages)
+	if message.GroupChat {
+		// Get all group members to whom to send the message
+		allGroupMembers, err := sqlQueries.GetGroupMembers(message.GroupID)
 		if err != nil {
-			websocket.SendErrorMessage(targetID, "Error marshaling chat messages")
-			logger.ErrorLogger.Printf("Error composing chat messages for user %d: %v\n", targetID, err)
+			logger.ErrorLogger.Printf("Error getting group members for group %d: %v\n", message.GroupID, err)
 			return
 		}
 
-		// Send the envelope to the recipient using WebSocket
+		for _, member := range allGroupMembers.Members {
+			if member.UserId != message.SenderID && websocket.IsClientOnline(member.UserId) {
+				targetIDs = append(targetIDs, member.UserId)
+			}
+		}
+
+		// Add group name to message
+		groupName, err := sqlQueries.GetGroupName(message.GroupID)
+		if err != nil {
+			logger.ErrorLogger.Printf("Error getting group name for group %d: %v\n", message.GroupID, err)
+			return
+		}
+		message.GroupName = groupName
+	} else {
+		if websocket.IsClientOnline(message.UserRecipientID) {
+			targetIDs = append(targetIDs, message.UserRecipientID)
+		}
+	}
+
+	envelopeBytes, err := websocket.ComposeWSEnvelopeMsg(config.WsMsgTypes.CHAT_MSGS, []structs.ChatMessage{message})
+	if err != nil {
+		for _, targetID := range targetIDs {
+			websocket.SendErrorMessage(targetID, "Error marshaling chat messages")
+		}
+		logger.ErrorLogger.Printf("Error composing chat message: %v\n", err)
+		return
+	}
+
+	// Send the envelope to the recipient(s) using WebSocket
+	for _, targetID := range targetIDs {
 		err = websocket.SendMessageToUser(targetID, envelopeBytes)
 		if err != nil {
 			logger.ErrorLogger.Printf("Error sending message to user %d: %v\n", targetID, err)
@@ -196,7 +246,31 @@ func (s *Service) SendPendingChatMessages(userID int) {
 		return
 	}
 
-	if len(messages) > 0 {
-		attemptToSendMessages(messages)
+	if len(messages) == 0 {
+		return
+	}
+
+	for i, message := range messages {
+		if message.GroupChat {
+			groupName, err := sqlQueries.GetGroupName(message.GroupID)
+			if err != nil {
+				logger.ErrorLogger.Printf("Error getting group name for group %d: %v\n", message.GroupID, err)
+				continue
+			}
+			messages[i].GroupName = groupName
+		}
+	}
+
+	envelopeBytes, err := websocket.ComposeWSEnvelopeMsg(config.WsMsgTypes.CHAT_MSGS, messages)
+	if err != nil {
+		websocket.SendErrorMessage(userID, "Error marshaling chat messages")
+		logger.ErrorLogger.Printf("Error composing chat message: %v\n", err)
+		return
+	}
+
+	// Send the envelope to the recipient using WebSocket
+	err = websocket.SendMessageToUser(userID, envelopeBytes)
+	if err != nil {
+		logger.ErrorLogger.Printf("Error sending message to user %d: %v\n", userID, err)
 	}
 }

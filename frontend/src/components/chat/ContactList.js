@@ -1,9 +1,12 @@
 import { FollowingContext } from '../store/following-context';
+import { GroupContext } from '../store/group-context';
 import { useContext, useEffect, useState } from 'react';
-import ContactItem from './ContactItem';
+import UserContactItem from './UserContactItem';
+import GroupContactItem from './GroupContactItem';
 
 function ContactList() {
     const { getFollowing, getFollowers, followers, following } = useContext(FollowingContext);
+    const { joinedGroups } = useContext(GroupContext);
 
     const [chatableUsers, setChatableUsers] = useState([]);
 
@@ -13,7 +16,22 @@ function ContactList() {
     }, [getFollowing, getFollowers]);
 
     useEffect(() => {
-      const chatableUsers = [...new Set([...following, ...followers])];
+      const mergedUsersMap = new Map(); //Map to merge followed and following users, excluding duplicates
+
+      followers.forEach(user => {
+        mergedUsersMap.set(user.id, user);
+      });
+
+      following.forEach(user => {
+        mergedUsersMap.set(user.id, user);
+      });
+
+      const chatableUsers = Array.from(mergedUsersMap.values());
+
+      chatableUsers.sort((a, b) => {
+        return a.fname.localeCompare(b.fname);
+      });
+
       setChatableUsers(chatableUsers);
     }, [following, followers]);
 
@@ -35,12 +53,15 @@ function ContactList() {
           {/* End: Users header */}
           <div>
             {/* Start: User items */}
-            {chatableUsers.map(user => (
-              <ContactItem 
-                key={user.id}
-                user={user}
-              />
-            ))}
+            {chatableUsers.length === 0 ? (
+              <p style={{marginLeft: 10}}>No users to chat with</p>
+            ) : (  
+              chatableUsers.map(user => (
+                <UserContactItem 
+                  key={user.id}
+                  user={user}
+                />
+            )))}
             {/* End: User items*/}
           </div>
           {/* Start: Groups header */}
@@ -58,36 +79,15 @@ function ContactList() {
           </div>
           {/* End: Groups header */}
           {/* Start: GroupsListContainer */}
-          <div
-            className="d-flex d-lg-flex align-items-lg-center"
-            style={{
-              padding: 5,
-              margin: 5,
-              boxShadow: '3px 3px 5px 5px var(--bs-body-color)',
-              marginBottom: 10,
-              width: 250,
-              cursor: 'pointer',
-            }}
-          >
-          {/* Start: Online */}
-          <div>
-            <span style={{ marginRight: 5 }}>🟢</span>
-            {/* {isCurrentChat && (
-              <span className="flash animated" style={{ marginRight: 3 }}>
-                💬
-              </span>
-            )} */}
-          </div>
-          {/* End: Online */}
-          {/* Start: Avatar */}
-          <div>
-            <img className="rounded-circle" alt="" src={'../assets/avatar1.jpeg'} style={{ width: 32, marginRight: 5 }} />
-          </div>
-          {/* End: Avatar */}
-          <div>
-            <span>Group name</span>
-          </div>
-          </div>
+          {joinedGroups.length === 0 ? (
+            <p style={{marginLeft: 10}}>No groups joined</p>
+          ) : (  
+            joinedGroups.map(group => (
+              <GroupContactItem 
+                key={group.id}
+                group={group}
+              />
+          )))}
           {/* End: GroupsListContainer */}
         </div>
     );

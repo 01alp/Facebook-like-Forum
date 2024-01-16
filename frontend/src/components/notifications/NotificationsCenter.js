@@ -55,16 +55,6 @@ const NotificationsCenter = (props) => {
     }
   }, [wsCtx, newNoti, showNoti]);
 
-  // NOTE: Erik - Commented this out atm, as didn't understand the purpose? But maybe still necessary
-  // useEffect(() => {
-  //   if (newNoti) {
-  //     let newarr = [wsCtx.newNotiObj, ...newNoti];
-  //     if (newarr[0] != null) {
-  //       localStorage.setItem('new_notif', JSON.stringify(Object.values(newarr)));
-  //     }
-  //   }
-  // }, [newNoti, showNotiBadge]);
-
   const onShowNoti = () => {
     setShowNoti((prev) => !prev);
     setShowNotiBadge(false);

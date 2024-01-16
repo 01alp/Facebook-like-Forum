@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"social-network/internal/logger"
 	"social-network/internal/sessions"
@@ -20,7 +19,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	Identifier, Password, ok := r.BasicAuth()
-	fmt.Println(Identifier, Password, ok)
+	// fmt.Println(Identifier, Password, ok)
 	if !ok {
 		logger.ErrorLogger.Println("Error getting basic auth in LoginHandler")
 		http.Error(w, "Error getting basic auth.", http.StatusBadRequest)
