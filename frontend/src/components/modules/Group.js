@@ -240,7 +240,7 @@ export function CreateEventModal({ groupId }) {
         setShowDateWarning(false);
     };
 
-    const newEventSubmitHandler = useCallback((e, eventTitle, eventStartTime, eventDescription) => {
+    const newEventSubmitHandler = useCallback((e, groupId, eventTitle, eventStartTime, eventDescription) => {
         e.preventDefault();
 
         // Validate that event start time is in future
@@ -253,6 +253,8 @@ export function CreateEventModal({ groupId }) {
             return
         }
 
+        const formattedStartTime = enteredDate.toISOString();
+
         const regPayloadObj = {
             method: 'POST',
             credentials: 'include',
@@ -263,9 +265,9 @@ export function CreateEventModal({ groupId }) {
             body: JSON.stringify({
                 groupid: groupId,
                 title: eventTitle,
-                starttime: eventStartTime,
+                starttime: formattedStartTime,
                 description: eventDescription,
-                createdat: new Date()
+                createdat: new Date().toISOString()
             })
         };
         fetch("http://localhost:8080/createEvent", regPayloadObj)
@@ -295,7 +297,7 @@ export function CreateEventModal({ groupId }) {
                         <h5 className="modal-title" id="createEventModalLabel">Create new event</h5>
                         <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form onSubmit={(e) => { newEventSubmitHandler(e, eventTitle, eventStartTimeRef.current.value, eventDescription); }}>
+                    <form onSubmit={(e) => { newEventSubmitHandler(e, groupId, eventTitle, eventStartTimeRef.current.value, eventDescription); }}>
                         <div className="modal-body">
                             <div className="mb-3">
                                 <textarea

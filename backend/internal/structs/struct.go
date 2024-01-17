@@ -220,6 +220,8 @@ type GroupMembersStruct struct {
 	GroupId int                 `json:"groupid"`
 }
 
+// ----------------------------- GROUP EVENTS ---------------------------------
+
 type GroupEvent struct {
 	Id          int    `json:"id"`
 	GroupId     int    `json:"groupid"`
@@ -228,6 +230,11 @@ type GroupEvent struct {
 	StartTime   string `json:"starttime"`
 	Description string `json:"description"`
 	CreatedAt   string `json:"createdat"`
+}
+
+type GroupEventResponse struct {
+	Status string     `json:"status"`
+	Event  GroupEvent `json:"event"`
 }
 
 type GroupEventPayload struct {

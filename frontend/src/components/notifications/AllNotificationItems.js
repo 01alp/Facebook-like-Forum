@@ -2,21 +2,21 @@ import { useEffect, useState } from 'react';
 import NotificationItems from './NotificationItems';
 
 const AllNotificationItems = (props) => {
- // console.log('all notficifjw', props);
-
-  const storedNotif = JSON.parse(localStorage.getItem('new_notif'));
   const [notiArr, setNotiArr] = useState([]);
 
   useEffect(() => {
+    const storedNotif = JSON.parse(localStorage.getItem('new_notif')) || []; // Add a default value here
     setNotiArr(storedNotif);
   }, []);
 
   useEffect(() => {
+    // This will always be an array, so no error should occur here.
     localStorage.setItem('new_notif', JSON.stringify(Object.values(notiArr)));
+    console.log(notiArr);
   }, [notiArr]);
 
   const removeNotification = (notifId) => {
-    const updatedNotiArr = notiArr.filter(noti => noti.id !== notifId);
+    const updatedNotiArr = notiArr.filter((noti) => noti.id !== notifId);
     setNotiArr(updatedNotiArr);
     localStorage.setItem('new_notif', JSON.stringify(updatedNotiArr));
   };
