@@ -1,16 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export const GroupContext = React.createContext({
-  joinedGroups: [],
-  getJoinedGroups: () => {},
-})
+  groups: [],
+  onNewGroupCreated: () => {},
+});
 
-export const GroupContextProvider = ({ children, userId }) => {
-  const [joinedGroups, setJoinedGroups] = useState([]);
+export const GroupContextProvider = (props) => {
+  const [groupsList, setGroupsList] = useState([]);
 
-  const getJoinedGroupsHandler = useCallback(() => {
-    const effectiveUserId = userId || localStorage.getItem('user_id');
-    fetch(`http://localhost:8080/getJoinedGroups?userID=${effectiveUserId}`, {
+  //Get Groups
+
+  const getGroupsHandler = () => {
+    fetch(`http://localhost:8080/getAllGroups`, {
       credentials: 'include',
     })
       .then((resp) => {
@@ -20,19 +21,16 @@ export const GroupContextProvider = ({ children, userId }) => {
         return resp.json();
       })
       .then((data) => {
-        console.log('joinedGroupsArr (context): ', data);
-        setJoinedGroups([...new Set(data)]);
+        console.log('group (context): ', data);
+        let [groupsArr] = Object.values(data);
+        setGroupsList(groupsArr);
       })
       .catch((err) => console.log('Error fetching joined groups:', err));
-  }, [userId]);
+  };
 
-  useEffect(() => {
-    getJoinedGroupsHandler();
-  }, [getJoinedGroupsHandler]);
+  useEffect(getGroupsHandler, []);
 
   return (
-    <GroupContext.Provider value={{ joinedGroups, getJoinedGroups: getJoinedGroupsHandler }}>
-      {children}
-    </GroupContext.Provider>
+    <GroupContext.Provider value={{ groups: groupsList, onNewGroupCreated: getGroupsHandler }}>{props.children}</GroupContext.Provider>
   );
-}
+};
