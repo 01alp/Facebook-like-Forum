@@ -53,6 +53,17 @@ func AddGroupMember(userid, groupid int) error {
 	return nil
 }
 
+func GroupRequestLeader(userid, groupid int) error {
+	_, err := database.DB.Exec(`INSERT INTO group_requests(user_id, group_id, request_status) VALUES(?, ?, ?)`, userid, groupid, 1)
+	if err != nil {
+		logger.ErrorLogger.Println(err)
+		fmt.Println(err)
+		return err
+	}
+
+	return nil
+}
+
 func CreateGroup(creatorid int, title string, description string) error { // maybe use BeginTx  here
 	result, err := database.DB.Exec(`INSERT INTO groups(creator_id, title, description) VALUES(?, ?, ?)`, creatorid, title, description)
 	if err != nil {
@@ -69,6 +80,13 @@ func CreateGroup(creatorid int, title string, description string) error { // may
 	}
 
 	err = AddGroupMember(creatorid, int(groupid))
+	if err != nil {
+		logger.ErrorLogger.Println(err)
+		fmt.Println(err)
+		return err
+	}
+
+	err = GroupRequestLeader(creatorid, int(groupid))
 	if err != nil {
 		logger.ErrorLogger.Println(err)
 		fmt.Println(err)

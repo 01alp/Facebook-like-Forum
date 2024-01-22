@@ -128,6 +128,7 @@ func GetJoinedGroups(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetGroupMembers(w http.ResponseWriter, r *http.Request) { // TODO: move this to other file later
+	fmt.Println("1:")
 	var GroupRequest []structs.GroupStruct
 	var GroupList []structs.GroupMembersStruct
 	if err := json.NewDecoder(r.Body).Decode(&GroupRequest); err != nil {
@@ -135,17 +136,19 @@ func GetGroupMembers(w http.ResponseWriter, r *http.Request) { // TODO: move thi
 		logger.ErrorLogger.Println(err.Error())
 		return
 	}
-
+	fmt.Println(GroupRequest)
 	for _, group := range GroupRequest {
 		if group.Id == 0 {
 			http.Error(w, "Group id empty", http.StatusBadRequest)
 			return
 		}
 		GroupMembers, err := sqlQueries.GetGroupMembers(group.Id)
+		fmt.Println(GroupMembers, group.Title)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
 		GroupList = append(GroupList, GroupMembers)
 	}
 

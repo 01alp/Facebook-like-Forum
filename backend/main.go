@@ -17,7 +17,7 @@ func initServices() {
 }
 
 func main() {
-
+	fmt.Println("ran")
 	initServices()
 
 	if err := server.ServerInit(); err != nil {

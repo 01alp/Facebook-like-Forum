@@ -49,7 +49,7 @@ const GroupPage = () => {
       .then((data) => {
         setGroups(() => {
           let newData = groupData;
-
+          console.log(data)
           for (const [, value] of Object.entries(data)) {
             newData.forEach((o, i) => {
               if (o.id === value.groupid) {
@@ -118,6 +118,7 @@ const GroupPage = () => {
 
       <ul className='list-group h-100 w-75'>
         {!groups || groups.length === 0 ? <span className='text-center fw-bolder'>Could not fetch any groups.</span> : groups.map((item) => {
+          console.log("item map: ", item)
           return (
             <li className="list-group-item list-group-item-action p-0 col-md-6 shadow border-0 rounded-2" key={item.id}>
               <div className="bg-primary bg-gradient w-100 border rounded-2 collapsed text-white" aria-expanded="false" data-bs-toggle="collapse" data-bs-target={"#group" + item.id} role="button">
