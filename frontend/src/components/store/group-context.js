@@ -1,36 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { createContext, useState, useContext } from 'react';
 
-export const GroupContext = React.createContext({
-  groups: [],
-  onNewGroupCreated: () => {},
-});
+const GroupContext = createContext();
 
-export const GroupContextProvider = (props) => {
-  const [groupsList, setGroupsList] = useState([]);
+export const useGroup = () => useContext(GroupContext);
 
-  //Get Groups
+export const GroupContextProvider = ({ children }) => {
+  const [groupsInfo, setGroupsInfo] = useState([]);
 
-  const getGroupsHandler = () => {
-    fetch(`http://localhost:8080/getAllGroups`, {
-      credentials: 'include',
-    })
-      .then((resp) => {
-        if (!resp.ok) {
-          throw new Error(`HTTP error - status: ${resp.status}`);
-        }
-        return resp.json();
-      })
-      .then((data) => {
-        console.log('group (context): ', data);
-        let [groupsArr] = Object.values(data);
-        setGroupsList(groupsArr);
-      })
-      .catch((err) => console.log('Error fetching joined groups:', err));
+  const updateGroups = (newGroups) => {
+    setGroupsInfo(newGroups);
   };
 
-  useEffect(getGroupsHandler, []);
-
-  return (
-    <GroupContext.Provider value={{ groups: groupsList, onNewGroupCreated: getGroupsHandler }}>{props.children}</GroupContext.Provider>
-  );
+  return <GroupContext.Provider value={{ groupsInfo, updateGroups }}>{children}</GroupContext.Provider>;
 };

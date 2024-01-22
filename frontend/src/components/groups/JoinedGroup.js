@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
-import { GroupContext } from '../store/group-context';
-import { Link } from 'react-router-dom'; 
+import { Link } from 'react-router-dom';
+import { JoinedGroupContext } from '../store/joined-group-context';
 
 const JoinedGroup = ({ currentUser }) => {
-  const { joinedGroups } = useContext(GroupContext);
+  const { joinedGroups } = useContext(JoinedGroupContext);
 
   return (
     <div
@@ -19,7 +19,7 @@ const JoinedGroup = ({ currentUser }) => {
       {joinedGroups.length === 0 ? (
         <p>No groups joined</p>
       ) : (
-        joinedGroups.map(group => (
+        joinedGroups.map((group) => (
           <div key={group.id} className="d-flex align-items-lg-center joinedGroupContainer" style={{ margin: 5 }}>
             <div className="joinedGroupName">
               <Link to={`/groups#${group.id}`}>

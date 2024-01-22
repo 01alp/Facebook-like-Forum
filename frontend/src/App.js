@@ -30,6 +30,7 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/group" element={<GroupPage />} />
           <Route path="/groupprofile" element={<GroupProfilePage />} />
+          <Route path="/groupprofile/:groupId" element={<GroupProfilePage />} />
           <Route path="/groups" element={<GroupPage />} />
           <Route path="/profile/:userId" element={<ProfilePage />} />
           <Route path="/chat" element={<ChatPage />} />

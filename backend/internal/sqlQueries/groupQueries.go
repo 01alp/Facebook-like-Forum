@@ -166,29 +166,40 @@ func GetAllGroups() ([]structs.GroupStruct, error) {
 	return Groups, nil
 }
 
-func GetGroups(amount, offset int) ([]structs.GroupStruct, error) { // allows to get x amount of groups
-	var Groups []structs.GroupStruct
+func GetGroups(amount, offset int) ([]structs.GroupStruct, error) {
+    var Groups []structs.GroupStruct
 
-	rows, err := database.DB.Query(`SELECT * from groups LIMIT ? OFFSET ?`, amount, offset)
-	if err != nil {
-		logger.ErrorLogger.Println(err.Error())
-		return nil, err
-	}
-	defer rows.Close()
+    var rows *sql.Rows
+    var err error
 
-	for rows.Next() {
-		var Group structs.GroupStruct
-		if err := rows.Scan(&Group.Id, &Group.Creator, &Group.Title, &Group.Description, &Group.CreatedAt); err != nil {
-			logger.ErrorLogger.Println(err.Error())
-			return nil, err
-		}
+    // Check if amount is greater than 0 to apply pagination
+    if amount > 0 {
+        rows, err = database.DB.Query(`SELECT * from groups LIMIT ? OFFSET ?`, amount, offset)
+    } else {
+        // Fetch all groups if amount is 0 or a specific sentinel value
+        rows, err = database.DB.Query(`SELECT * from groups`)
+    }
 
-		Group.MemberCount = GetGroupMemberCount(Group.Id)
-		Groups = append(Groups, Group)
-	}
+    if err != nil {
+        logger.ErrorLogger.Println(err.Error())
+        return nil, err
+    }
+    defer rows.Close()
 
-	return Groups, nil
+    for rows.Next() {
+        var Group structs.GroupStruct
+        if err := rows.Scan(&Group.Id, &Group.Creator, &Group.Title, &Group.Description, &Group.CreatedAt); err != nil {
+            logger.ErrorLogger.Println(err.Error())
+            return nil, err
+        }
+
+        Group.MemberCount = GetGroupMemberCount(Group.Id)
+        Groups = append(Groups, Group)
+    }
+
+    return Groups, nil
 }
+
 
 func GetJoinedGroups(userID int) ([]structs.GroupStruct, error) {
 	var joinedGroups []structs.GroupStruct

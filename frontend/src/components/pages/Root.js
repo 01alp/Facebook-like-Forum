@@ -7,6 +7,7 @@ import { FollowingContextProvider } from '../store/following-context';
 import { PostsContextProvider } from '../store/posts-context';
 import { ChatProvider } from '../store/chat-context';
 import { GroupContextProvider } from '../store/group-context';
+import { JoinedGroupContext, JoinedGroupContextProvider } from '../store/joined-group-context';
 
 const Root = () => {
   return (
@@ -16,11 +17,13 @@ const Root = () => {
           <WebSocketContextProvider>
             <FollowingContextProvider>
               <GroupContextProvider>
-                <PostsContextProvider>
-                  <Layout>
-                    <Outlet />
-                  </Layout>
-                </PostsContextProvider>
+                <JoinedGroupContextProvider>
+                  <PostsContextProvider>
+                    <Layout>
+                      <Outlet />
+                    </Layout>
+                  </PostsContextProvider>
+                </JoinedGroupContextProvider>
               </GroupContextProvider>
             </FollowingContextProvider>
           </WebSocketContextProvider>

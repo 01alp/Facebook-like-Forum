@@ -5,7 +5,7 @@ export const JoinedGroupContext = React.createContext({
   getJoinedGroups: () => {},
 });
 
-export const GroupContextProvider = ({ children, userId }) => {
+export const JoinedGroupContextProvider = ({ children, userId }) => {
   const [joinedGroups, setJoinedGroups] = useState([]);
 
   const getJoinedGroupsHandler = useCallback(() => {
