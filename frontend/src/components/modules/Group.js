@@ -94,10 +94,20 @@ export function GroupMemberList({ members, id }) {
   );
 }
 
-export function JoinButton({ members, userid, groupid, callback }) {
+export function JoinButton({ members, userid, groupid, callback, creator }) {
+  let isUserOwner = creator === +userid;
+
   let buttonColor = 'rgb(0,255,0)';
   let buttonText = '👥 Join Group';
   let path = 'sendGroupRequest';
+
+  if (isUserOwner) {
+    // Current user is the group leader
+    buttonColor = 'rgb(0,255,0)';
+    buttonText = '👑 Leader';
+    path = '';
+  } // i think don't need this anymore
+
   members.forEach((element) => {
     if (element.userid !== parseInt(userid)) {
       return;
@@ -126,9 +136,11 @@ export function JoinButton({ members, userid, groupid, callback }) {
     if (buttonText === '👑 Leader') {
       return;
     }
-    sendGroupRequest(groupid, path).then(() => {
-      callback && callback();
-    });
+    if (path) {
+      sendGroupRequest(groupid, path).then(() => {
+        callback && callback();
+      });
+    }
   };
 
   return (

@@ -161,27 +161,38 @@ func DeclineGroupRequest(userid, otheruserid, groupid int) error {
 }
 
 func GetAllGroups() ([]structs.GroupStruct, error) {
-	var Groups []structs.GroupStruct
+    var Groups []structs.GroupStruct
 
-	rows, err := database.DB.Query(`SELECT * from groups`)
-	if err != nil {
-		logger.ErrorLogger.Println(err.Error())
-		return nil, err
-	}
-	defer rows.Close()
+    // Query to get all groups
+    rows, err := database.DB.Query(`SELECT * FROM groups`)
+    if err != nil {
+        logger.ErrorLogger.Println(err.Error())
+        return nil, err
+    }
+    defer rows.Close()
 
-	for rows.Next() {
-		var Group structs.GroupStruct
-		if err := rows.Scan(&Group.Id, &Group.Creator, &Group.Title, &Group.Description, &Group.CreatedAt); err != nil {
-			logger.ErrorLogger.Println(err.Error())
-			return nil, err
-		}
+    for rows.Next() {
+        var Group structs.GroupStruct
+        if err := rows.Scan(&Group.Id, &Group.Creator, &Group.Title, &Group.Description, &Group.CreatedAt); err != nil {
+            logger.ErrorLogger.Println(err.Error())
+            return nil, err
+        }
 
-		Group.MemberCount = GetGroupMemberCount(Group.Id)
-		Groups = append(Groups, Group)
-	}
+        // Now, for each group, get the member data
+        memberData, err := GetGroupMembers(Group.Id)
+        if err != nil {
+            logger.ErrorLogger.Println("Error getting group members for group", Group.Id, ":", err.Error())
+            // You might continue with the next group or return an error.
+            continue // or return nil, err
+        }
 
-	return Groups, nil
+        Group.Members = memberData.Members  // Ad structs
+        Group.MemberCount = len(Group.Members) // You can now set MemberCount based on the length of Members
+
+        Groups = append(Groups, Group)
+    }
+
+    return Groups, nil
 }
 
 func GetGroups(amount, offset int) ([]structs.GroupStruct, error) {

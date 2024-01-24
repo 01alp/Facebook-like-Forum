@@ -163,6 +163,7 @@ type GroupStruct struct {
 	Description string `json:"description"`
 	CreatedAt   string `json:"createdat"`
 	MemberCount int    `json:"membercount,omitempty"`
+	Members     []GroupMemberStruct `json:"members"` // New field added
 }
 
 type GroupResponse struct {

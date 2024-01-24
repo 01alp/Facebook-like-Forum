@@ -1,53 +1,15 @@
-import React, { useState, useEffect, useCallback, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GroupCreateModal, JoinButton } from '../modules/Group';
 import GroupImg from '../assets/img/socialFav.png';
 import { Link } from 'react-router-dom';
-import { useGroup } from '../store/group-context';
-
-
-export function RequestGroupAdditionalInfo(groupData, updateGroups) {
-  console.log("MADE: ", groupData, updateGroups)
-  const reqOptions = {
-    method: 'POST',
-    credentials: 'include',
-    mode: 'cors',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(groupData),
-  };
-
-  fetch('http://localhost:8080/getGroupMembers', reqOptions)
-    .then((resp) => resp.json())
-    .then((data) => {
-      updateGroups(() => {
-        let newData = groupData.map((group) => {
-          return { ...group, members: group.members || [] };
-        });
-
-        for (const [, value] of Object.entries(data)) {
-          newData.forEach((o, i) => {
-            if (o.id === value.groupid) {
-              newData[i] = { ...newData[i], members: value.members };
-              return true; // stop searching
-            }
-          });
-        }
-        console.log('newData', newData);
-
-        return [...newData];
-      });
-    })
-    .catch((err) => console.log(err));
-};
 
 const GroupPage = () => {
   document.title = 'Groups List';
+  const [groupsInfo, setGroupsInfo] = useState([]); // Local state to store groups data
   const [refreshGroups, setRefreshGroups] = useState(false);
-  const { groupsInfo, updateGroups } = useGroup();
 
-  useEffect(() => {
-    fetch('http://localhost:8080/getGroups', {
+  const fetchGroups = () => {
+    fetch('http://localhost:8080/getAllGroups', {
       method: 'POST',
       body: JSON.stringify({}),
     })
@@ -56,18 +18,25 @@ const GroupPage = () => {
         if (!data || data.length === 0) {
           return;
         }
-        const dataCopy = Array.from(data);
-        RequestGroupAdditionalInfo(dataCopy, updateGroups);
+        // Ensure each group has a members array
+        const updatedData = data.map((group) => ({
+          ...group,
+          members: group.members || [], // Sets members to an empty array if it's null or undefined
+        }));
+
+        setGroupsInfo(updatedData); // Update local state with the modified data
+        console.log(...updatedData);
       })
       .catch((err) => console.log(err));
-  }, [RequestGroupAdditionalInfo, refreshGroups]);
+  }; // Removed updateGroups dependency
 
-  const onGroupUpdate = useCallback(() => {
-    console.log("this ran!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    const dataCopy = Array.from(groupsInfo); // this was groups not groupsInfo before, if something breaks revert
-    RequestGroupAdditionalInfo(dataCopy, updateGroups);
-  }, [groupsInfo, RequestGroupAdditionalInfo]); // this was groups not groupsInfo before, if something breaks revert
+  useEffect(() => {
+    fetchGroups();
+  }, [refreshGroups]);
 
+  const onGroupUpdate = () => {
+    fetchGroups(); // Re-fetch the groups data
+  };
   return (
     <div className="container" id="mainContainer">
       <div className="row">
@@ -130,6 +99,7 @@ const GroupPage = () => {
                             members={item.members}
                             userid={localStorage.getItem('user_id' ?? 0)}
                             groupid={item.id}
+                            creator={item.creator}
                             callback={onGroupUpdate}
                           />
                         )}

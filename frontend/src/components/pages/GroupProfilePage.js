@@ -1,23 +1,59 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useGroup } from '../store/group-context';
 import GroupImg from '../assets/img/socialFav.png';
 import { CreateEventModal, GroupMemberList, JoinButton } from '../modules/Group';
-import {RequestGroupAdditionalInfo} from '../pages/GroupPage'
 
 const GroupProfilePage = () => {
   const { groupId } = useParams();
-  const { groupsInfo, updateGroups } = useGroup();
-  const [groupInfo, setGroupInfo] = useState(null);
+  const [groupInfo, setGroupInfo] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchGroup = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/getAllGroups', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch groups');
+      }
+
+      const allGroups = await response.json();
+      const specificGroup = allGroups.find((group) => group.id === parseInt(groupId));
+      console.log(specificGroup);
+
+      if (specificGroup) {
+        setGroupInfo(specificGroup);
+      } else {
+        throw new Error('Group not found');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const foundGroup = groupsInfo.find((group) => group.id.toString() === groupId);
-    setGroupInfo(foundGroup);
-    console.log(groupInfo);
-  }, [groupsInfo, groupId]);
+    fetchGroup();
+  }, [groupId]);
+
+  // Callback function for the JoinButton
+  const handleGroupUpdate = () => {
+    fetchGroup(); // Re-fetch the specific group's data
+  };
+
+  if (isLoading) {
+    return <div>Loading group information...</div>;
+  }
 
   if (!groupInfo) {
-    return <div>Loading...</div>;
+    return <div>Group not found.</div>;
   }
 
   return (
@@ -114,8 +150,10 @@ const GroupProfilePage = () => {
                     members={groupInfo.members}
                     userid={localStorage.getItem('user_id' ?? 0)}
                     groupid={groupInfo.id}
-                    
-                    callback={() => {RequestGroupAdditionalInfo(Array.from(groupsInfo), updateGroups)}}
+                    creator={groupInfo.creator}
+                    callback={handleGroupUpdate}
+
+                    // callback={() => {RequestGroupAdditionalInfo(Array.from(groupsInfo), updateGroups)}}
                   />
                 )}
               </div>
