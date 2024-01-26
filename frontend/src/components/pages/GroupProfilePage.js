@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import GroupImg from '../assets/img/socialFav.png';
 import { CreateEventModal, GroupMemberList, JoinButton } from '../modules/Group';
+import NotGroupMembers from '../posts/notGroupMembers';
 
 const GroupProfilePage = () => {
   const { groupId } = useParams();
@@ -56,6 +57,11 @@ const GroupProfilePage = () => {
     return <div>Group not found.</div>;
   }
 
+  const excludeUserIds = groupInfo.members.map((member) => member.userid);
+  if (groupInfo.creator) {
+    excludeUserIds.push(groupInfo.creator);
+  }
+  console.log('excludedUserIds', excludeUserIds);
   return (
     <div className="container" id="mainContainer">
       <div className="row">
@@ -112,6 +118,13 @@ const GroupProfilePage = () => {
               {groupInfo.members && <GroupMemberList members={groupInfo.members} id={groupInfo.id} />}
             </div>
             {/* End: listUsers */}
+          </div>
+          <div
+            style={{
+              maxWidth: 250,
+            }}
+          >
+            <NotGroupMembers excludeUsers={excludeUserIds} groupid={groupInfo.id} />
           </div>
         </div>
         <div className="col-12 col-sm-12 col-md-12 col-lg-8 col-xl-8 col-xxl-8" id="rightColumn">

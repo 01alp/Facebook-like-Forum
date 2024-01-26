@@ -14,18 +14,25 @@ import (
 func SendGroupRequest(w http.ResponseWriter, r *http.Request) {
 	var GroupRequest structs.GroupRequestStruct
 	var GroupRequestNotif structs.GroupRequestNotifStruct
-
+	var isInvited bool // will be true if group owner invited, false if requested themselves
 	UserID := r.Context().Value("userID").(int)
-
-	User := sqlQueries.GetUserFromID(UserID)
-	if User.ID == 0 {
-		http.Error(w, "ERROR: USER DOES NOT EXIST.", http.StatusBadRequest)
-	}
 
 	if err := json.NewDecoder(r.Body).Decode(&GroupRequest); err != nil {
 		http.Error(w, "ERROR: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	User := sqlQueries.GetUserFromID(UserID)
+
+	if GroupRequest.UserId != 0 {
+		isInvited = true
+		UserID = GroupRequest.UserId
+	}
+
+	if User.ID == 0 {
+		http.Error(w, "ERROR: USER DOES NOT EXIST.", http.StatusBadRequest)
+	}
+
 	if GroupRequest.GroupId == 0 {
 		http.Error(w, "Group id empty", http.StatusBadRequest)
 		return
@@ -37,6 +44,13 @@ func SendGroupRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	group := sqlQueries.GetGroup(GroupRequest.GroupId)
+	var sendTo int // who should receive the notification
+	if isInvited {
+		sendTo = UserID
+	} else {
+		sendTo = group.Creator
+	}
+
 	GroupRequestNotif.UserId = User.ID
 	GroupRequestNotif.Username = User.Username
 	GroupRequestNotif.GroupName = group.Title
@@ -51,7 +65,7 @@ func SendGroupRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = websocket.SendMessageToUser(group.Creator, envelopeBytes)
+	err = websocket.SendMessageToUser(sendTo, envelopeBytes)
 	if err != nil {
 		logger.ErrorLogger.Printf("Error sending message to user %d: %v\n", group.Creator, err)
 	}

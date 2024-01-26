@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { ListGroup, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
-function sendGroupRequest(groupid, path) {
+function sendGroupRequest(groupid, path, userid) {
   if (!path) {
     return;
   }
@@ -14,7 +14,7 @@ function sendGroupRequest(groupid, path) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ groupid: groupid }),
+    body: JSON.stringify({ groupid: groupid, userid: userid ?? 0}),
   };
 
   let result = fetch(`http://localhost:8080/${path}`, reqOptions).catch((error) => {
@@ -69,18 +69,18 @@ export function GroupMemberList({ members, id }) {
             {element.nickname}
           </div>
           {isUserOwner && !isOwner && (
-            <Button
+            <span
               onClick={(e) =>
                 handleKick(e, element.userid, id).then(() => {
                   console.log('XDDD');
                 })
               }
-              type="button"
+              type="span"
               className="btn btn-danger z-n2"
             >
               <i className="fas fa-times pe-1"></i>
               Kick
-            </Button>
+            </span>
           )}
         </ListGroup.Item>
       </Link>
@@ -345,4 +345,15 @@ export function CreateEventModal({ groupId }) {
       </form>
     </div>
   );
+}
+
+//--------Add Group Member--------
+export function addGroupMember(userid, groupid) {
+  return sendGroupRequest(groupid, "sendGroupRequest", userid)
+    .then((data) => {
+      console.log('Add member response:', data);
+    })
+    .catch((error) => {
+      console.error('Error adding group member:', error);
+    });
 }
