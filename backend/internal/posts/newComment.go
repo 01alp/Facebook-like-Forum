@@ -29,15 +29,23 @@ func NewCommentHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(filename)
 	newComment.Image = filename
-	fmt.Println(newComment)
+	fmt.Println(newComment.GroupID)
 
 	// Insert new comment into database
-	if err := sqlQueries.InsertNewComment(newComment); err != nil {
-		logger.ErrorLogger.Println("Error creating new comment:", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if newComment.GroupID == 0 {
+		if err := sqlQueries.InsertNewComment(newComment); err != nil {
+			logger.ErrorLogger.Println("Error creating new comment:", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Insert new group comment into database
+		if err := sqlQueries.InsertNewGroupComment(newComment); err != nil {
+			logger.ErrorLogger.Println("Error creating new comment:", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusCreated)
 }

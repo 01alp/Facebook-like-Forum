@@ -21,6 +21,8 @@ function AllPosts(props) {
           postNum={p}
           commentsForThisPost={post.comments ? post.comments : []}
           onCreateComment={props.onCreateComment}
+          group={props.group}
+          groupId={props.groupId}
         />
       ))}
     </div>

@@ -1,11 +1,12 @@
-import { FollowingContext } from '../store/following-context';
-import { JoinedGroupContext } from '../store/joined-group-context';
-import { useContext, useEffect, useState } from 'react';
-import UserContactItem from './UserContactItem';
-import GroupContactItem from './GroupContactItem';
+import { FollowingContext } from "../store/following-context";
+import { JoinedGroupContext } from "../store/joined-group-context";
+import { useContext, useEffect, useState } from "react";
+import UserContactItem from "./UserContactItem";
+import GroupContactItem from "./GroupContactItem";
 
 function ContactList() {
-  const { getFollowing, getFollowers, followers, following } = useContext(FollowingContext);
+  const { getFollowing, getFollowers, followers, following } =
+    useContext(FollowingContext);
   const { joinedGroups } = useContext(JoinedGroupContext);
 
   const [chatableUsers, setChatableUsers] = useState([]);
@@ -36,15 +37,15 @@ function ContactList() {
   }, [following, followers]);
 
   return (
-    <div className="col-12 col-sm-12 col-md-12 col-lg-5 col-xl-4 col-xxl-3">
+    <div className='col-12 col-sm-12 col-md-12 col-lg-5 col-xl-4 col-xxl-3'>
       {/* Start: Users header */}
       <div
         style={{
-          boxShadow: '3px 3px 5px 5px',
+          boxShadow: "3px 3px 5px 5px",
           margin: 5,
           padding: 5,
-          color: 'var(--bs-body-bg)',
-          background: 'var(--bs-primary)',
+          color: "var(--bs-body-bg)",
+          background: "var(--bs-primary)",
           width: 250,
         }}
       >
@@ -56,18 +57,20 @@ function ContactList() {
         {chatableUsers.length === 0 ? (
           <p style={{ marginLeft: 10 }}>No users to chat with</p>
         ) : (
-          chatableUsers.map((user) => <UserContactItem key={user.id} user={user} />)
+          chatableUsers.map((user) => (
+            <UserContactItem key={user.id} user={user} />
+          ))
         )}
         {/* End: User items*/}
       </div>
       {/* Start: Groups header */}
       <div
         style={{
-          boxShadow: '3px 3px 5px 5px',
+          boxShadow: "3px 3px 5px 5px",
           margin: 5,
           padding: 5,
-          color: 'var(--bs-body-bg)',
-          background: 'var(--bs-primary)',
+          color: "var(--bs-body-bg)",
+          background: "var(--bs-primary)",
           width: 250,
         }}
       >
@@ -78,7 +81,9 @@ function ContactList() {
       {joinedGroups.length === 0 ? (
         <p style={{ marginLeft: 10 }}>No groups joined</p>
       ) : (
-        joinedGroups.map((group) => <GroupContactItem key={group.id} group={group} />)
+        joinedGroups.map((group) => (
+          <GroupContactItem key={group.id} group={group} />
+        ))
       )}
       {/* End: GroupsListContainer */}
     </div>

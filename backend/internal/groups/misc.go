@@ -164,3 +164,43 @@ func KickFromGroup(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(`{result: "Success??"}`))
 }
+
+func GetGroupEvents(w http.ResponseWriter, r *http.Request) {
+	var requestData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	groupID, ok := requestData["groupId"].(float64)
+	if !ok {
+		http.Error(w, "Invalid groupId", http.StatusBadRequest)
+		return
+	}
+	events, err := sqlQueries.GetGroupEvents(int(groupID))
+	if err != nil {
+		logger.ErrorLogger.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	eventAttendees, err := sqlQueries.GetEventAttendees(int(groupID))
+	if err != nil {
+		logger.ErrorLogger.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var eventsWithAttendees []structs.GroupEventWithAttendees
+
+	for _, eData := range events.Data {
+		eventWithAttendees := structs.GroupEventWithAttendees{
+			GroupEvent: eData,
+			Attendees:  eventAttendees[eData.Id],
+		}
+
+		eventsWithAttendees = append(eventsWithAttendees, eventWithAttendees)
+	}
+
+	json.NewEncoder(w).Encode(eventsWithAttendees)
+}

@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from 'react';
 import { FollowingContext } from '../store/following-context';
 import { UsersContext } from '../store/users-context';
 import { WebSocketContext } from '../store/websocket-context';
-import { GroupContextProvider } from '../store/group-context';
+import { JoinedGroupContext, JoinedGroupContextProvider } from '../store/joined-group-context';
 import { PostsContext } from '../store/posts-context.js';
 import FollowerModal from './FollowerModal';
 import FollowingModal from './FollowingModal';
@@ -28,7 +28,7 @@ function Profile({ userId }) {
   const followingCtx = useContext(FollowingContext);
   const usersCtx = useContext(UsersContext);
   const { followRequestResult, setFollowRequestResult } = useContext(WebSocketContext);
-  const { refreshPosts }= useContext(PostsContext);
+  const { refreshPosts } = useContext(PostsContext);
 
   const currUserId = localStorage.getItem('user_id');
 
@@ -38,7 +38,7 @@ function Profile({ userId }) {
   const [profileAccessibility, setProfileAccessibility] = useState(false); //Public profile or private followed profile is accesible
 
   const getFollowerHandler = () => {
-    console.log("Getting followers for user: ", targetUser.fname)
+    console.log('Getting followers for user: ', targetUser.fname);
     // console.log('apis getting called');
     fetch(`http://localhost:8080/getFollowers?userID=${userId}`, {
       credentials: 'include',
@@ -112,22 +112,25 @@ function Profile({ userId }) {
       .catch((err) => console.log('Error fetching follow status:', err));
   };
 
-  useEffect(() => { // Set profile accessibility after knowing publicity and followStatus
+  useEffect(() => {
+    // Set profile accessibility after knowing publicity and followStatus
     if (pubCheck || followStatus === 1 || userId === currUserId) {
       setProfileAccessibility(true);
     } else {
       setProfileAccessibility(false);
-    };
-  }, [pubCheck, followStatus])
+    }
+  }, [pubCheck, followStatus]);
 
-  useEffect(() => { // After knowing profileAccesibility & profile is accesible, get followers and following
+  useEffect(() => {
+    // After knowing profileAccesibility & profile is accesible, get followers and following
     if (profileAccessibility) {
       getFollowerHandler();
       getFollowingHandler();
     }
-  }, [userId, profileAccessibility])
+  }, [userId, profileAccessibility]);
 
-  useEffect(() => { //To get the result of follow request from ws and update profile accordingly
+  useEffect(() => {
+    //To get the result of follow request from ws and update profile accordingly
     if (followRequestResult && followRequestResult.userId == userId) {
       setFollowStatus(followRequestResult.status ? 1 : 2);
       setFollowRequestResult(null);
@@ -143,7 +146,7 @@ function Profile({ userId }) {
     const foundUser = usersCtx.usersList.find((user) => user.id === +userId);
 
     if (foundUser) {
-      document.title = foundUser.fname + " " + foundUser.lname;
+      document.title = foundUser.fname + ' ' + foundUser.lname;
       setTargetUser(foundUser); // Set targetUser state
       if (foundUser.public != 0) {
         setPubCheck(true);
@@ -152,7 +155,6 @@ function Profile({ userId }) {
       setTargetUser('not found');
     }
   }, [userId, usersCtx.usersList]);
-
 
   useEffect(() => {
     selfPublicNum ? setPublicity(true) : setPublicity(false);
@@ -428,7 +430,9 @@ function Profile({ userId }) {
 
   return (
     <div className="container-fluid">
-      <h3 className="text-dark mb-4">{targetUser.fname} {targetUser.lname}</h3>
+      <h3 className="text-dark mb-4">
+        {targetUser.fname} {targetUser.lname}
+      </h3>
       <div className="row mb-3">
         <div className="col-lg-4">
           {/* Start: Avatarimage */}
@@ -441,7 +445,7 @@ function Profile({ userId }) {
           </div>
           {/* End: Avatarimage */}
           {/* Start: Aboutme */}
-          { profileAccessibility && (
+          {profileAccessibility && (
             <div className="card shadow mb-4">
               <div className="card-header py-3">
                 <h6 className="text-primary fw-bold m-0">About:</h6>
@@ -455,24 +459,27 @@ function Profile({ userId }) {
                 </div>
                 {/* End: Profile About Container */}
               </div>
-            </div> )}
+            </div>
+          )}
           {/* End: Aboutme */}
           {/* Start: joinedGroupsDiv */}
-          { profileAccessibility && (
+          {profileAccessibility && (
             <div className="joinedGroups" style={{ padding: 5, marginTop: -20 }}>
               <div className=" joinedGroupContainer" style={{ margin: 5 }}>
-                <GroupContextProvider userId={userId}>
+                <JoinedGroupContextProvider userId={userId}>
                   <JoinedGroup currentUser={userId === currUserId} />
-                </GroupContextProvider>
+                </JoinedGroupContextProvider>
               </div>
-            </div> )}
+            </div>
+          )}
           {/* End: joinedGroupsDiv */}
           {/* Start: upcomingEventsDiv */}
-          { profileAccessibility && (
-          <div className="upcomingEvents" style={{ padding: 5, marginTop: 20 }}>
-            <h5>Upcoming Events:</h5>
-            <UserEvent />
-          </div> )}
+          {profileAccessibility && (
+            <div className="upcomingEvents" style={{ padding: 5, marginTop: 20 }}>
+              <h5>Upcoming Events:</h5>
+              <UserEvent />
+            </div>
+          )}
           {/* End: upcomingEventsDiv */}
         </div>
         <div className="col-lg-8">
@@ -512,7 +519,7 @@ function Profile({ userId }) {
                     <div>{messageButton}</div>
                   </div>
                 </div>
-                { profileAccessibility && (
+                {profileAccessibility && (
                   <div className="card-body">
                     <div>
                       <div className="row">
@@ -575,11 +582,12 @@ function Profile({ userId }) {
                         </div>
                       </div>
                     </div>
-                  </div> )}
+                  </div>
+                )}
               </div>
               {/* End: User profile info */}
               {/* Start: followers following */}
-              { profileAccessibility && (
+              {profileAccessibility && (
                 <div className="card shadow">
                   <div className="card-header py-3">
                     <p className="text-primary m-0 fw-bold">Followers:</p>
@@ -602,7 +610,8 @@ function Profile({ userId }) {
                     </div>
                     {/* End: profile followers container */}
                   </div>
-                </div> )}
+                </div>
+              )}
               {/* End: followers following */}
               <CloseFriends closeFriendList={closeFriendList} followers={followerData} isOwnProfile={userId === currUserId} />
             </div>

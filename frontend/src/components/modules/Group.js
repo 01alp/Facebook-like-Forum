@@ -14,7 +14,7 @@ function sendGroupRequest(groupid, path, userid) {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ groupid: groupid, userid: userid ?? 0}),
+    body: JSON.stringify({ groupid: groupid, userid: userid ?? 0 }),
   };
 
   let result = fetch(`http://localhost:8080/${path}`, reqOptions).catch((error) => {
@@ -225,131 +225,9 @@ export function GroupCreateModal({ onGroupCreated }) {
     </form>
   );
 }
-
-export function CreateEventModal({ groupId }) {
-  const [eventTitle, setEventTitle] = useState('');
-  const [eventDescription, setEventDescription] = useState('');
-  const eventStartTimeRef = useRef(null);
-  const [showDateWarning, setShowDateWarning] = useState(false);
-
-  const eventTitleChangeHandler = (e) => {
-    setEventTitle(e.target.value);
-  };
-
-  const eventDescriptionChangeHandler = (e) => {
-    setEventDescription(e.target.value);
-  };
-
-  const resetFields = () => {
-    setEventTitle('');
-    eventStartTimeRef.current.value = '';
-    setEventDescription('');
-    setShowDateWarning(false);
-  };
-
-  const newEventSubmitHandler = useCallback((e, groupId, eventTitle, eventStartTime, eventDescription) => {
-    e.preventDefault();
-
-    // Validate that event start time is in future
-    const currentDate = new Date();
-    const enteredDate = new Date(eventStartTime);
-    if (currentDate > enteredDate) {
-      eventStartTimeRef.current.value = '';
-      eventStartTimeRef.current.focus();
-      setShowDateWarning(true);
-      return;
-    }
-
-    const formattedStartTime = enteredDate.toISOString();
-
-    const regPayloadObj = {
-      method: 'POST',
-      credentials: 'include',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        groupid: groupId,
-        title: eventTitle,
-        starttime: formattedStartTime,
-        description: eventDescription,
-        createdat: new Date().toISOString(),
-      }),
-    };
-    fetch('http://localhost:8080/createEvent', regPayloadObj)
-      .then((req) => {
-        if (req.status === 201) {
-          console.log('SUCCESS CREATING EVENT');
-          resetFields();
-        } else {
-          console.log('FAILED TO CREATE EVENT', req.status);
-        }
-      })
-      .catch((err) => console.log(err));
-  }, []);
-
-  return (
-    <div
-      className="createEvent"
-      style={{
-        padding: 5,
-        boxShadow: '3px 3px 5px 5px var(--bs-body-color)',
-      }}
-    >
-      <h5 style={{ marginRight: 5, marginLeft: 5 }}>Create Event:</h5>
-      {/* Start: createEventForm */}
-      <form
-        className="createEventForm"
-        style={{ margin: 5, padding: 5 }}
-        onSubmit={(e) => {
-          newEventSubmitHandler(e, groupId, eventTitle, eventStartTimeRef.current.value, eventDescription);
-        }}
-      >
-        <input
-          className="form-control"
-          type="text"
-          placeholder="Title:"
-          style={{ marginBottom: 5 }}
-          required
-          pattern=".*\S.*"
-          minLength={3}
-          maxLength={200}
-          value={eventTitle}
-          onChange={eventTitleChangeHandler}
-        />
-        <textarea
-          className="form-control"
-          placeholder="Description"
-          style={{ marginBottom: 10 }}
-          value={eventDescription}
-          required
-          pattern=".*\S.*"
-          minLength={3}
-          maxLength={200}
-          rows={3}
-          onChange={eventDescriptionChangeHandler}
-        />
-        <input
-          className="form-control"
-          type="datetime-local"
-          placeholder="Event Start Time"
-          required
-          pattern=".*\S.*"
-          ref={eventStartTimeRef}
-        />
-        <div>{showDateWarning && <span className="me-5 text-danger">Start time must be in the future</span>}</div>
-        <button className="btn btn-primary" type="submit" style={{ marginTop: 10 }}>
-          Create
-        </button>
-      </form>
-    </div>
-  );
-}
-
 //--------Add Group Member--------
 export function addGroupMember(userid, groupid) {
-  return sendGroupRequest(groupid, "sendGroupRequest", userid)
+  return sendGroupRequest(groupid, 'sendGroupRequest', userid)
     .then((data) => {
       console.log('Add member response:', data);
     })

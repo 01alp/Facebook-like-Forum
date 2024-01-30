@@ -29,13 +29,7 @@ const PostsPage = () => {
           {/* Start: rightColumn */}
           <div className="col-12 col-sm-12 col-md-12 col-lg-9 col-xl-9 col-xxl-9">
             {/* Start: makePostDiv */}
-            <div
-              className="makePost"
-              style={{
-                boxShadow: '3px 3px 5px 5px var(--bs-body-color)',
-                padding: 5,
-              }}
-            >
+            <div>
               <CreatePost onCreatePost={postsCtx.onCreatePost} />
             </div>
             {/* End: makePostDiv */}

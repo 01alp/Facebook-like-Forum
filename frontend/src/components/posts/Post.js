@@ -42,17 +42,19 @@ function Post(props) {
 
   // console.log('created:', created);
   // console.log('props.createdAt:', props.createdat);
-  let privacy;
-  switch (props.privacy) {
-    case 1:
-      privacy = <span style={{ fontSize: 23 }}> 🔐Prv.</span>;
-      break;
-    case 2:
-      privacy = <span style={{ fontSize: 23 }}>🔓Fans</span>;
-      break;
-    default:
-      privacy = <span style={{ fontSize: 23 }}>🟢Pub.</span>;
-      break;
+  let privacy = null;
+  if (!props.group) {
+    switch (props.privacy) {
+      case 1:
+        privacy = <span style={{ fontSize: 23 }}>🔐Prv.</span>;
+        break;
+      case 2:
+        privacy = <span style={{ fontSize: 23 }}>🔓Fans</span>;
+        break;
+      default:
+        privacy = <span style={{ fontSize: 23 }}>🟢Pub.</span>;
+        break;
+    }
   }
 
   return (
@@ -82,9 +84,12 @@ function Post(props) {
               </Link>
             </div>
           </div>
-          <div>
-            <div className="d-lg-flex align-items-lg-center">{privacy}</div>
-          </div>
+          {privacy && (
+            <div>
+              <div className="d-lg-flex align-items-lg-center">{privacy}</div>
+            </div>
+          )}
+
           <div>
             <span>{created}</span>
           </div>
@@ -96,13 +101,16 @@ function Post(props) {
           <div>{props.message}</div>
           {/* End: postContent */}
           {/* Start: image */}
-          <div style={{ textAlign: 'center' }}>
-            {props.image !== '0' && (
-              <div>
-                <img src={imagesUrl + props.image} alt="" className="img-fluid" style={{ width: 100, margin: 'auto' }} />
-              </div>
-            )}
-          </div>
+          {!props.group && (
+            <div style={{ textAlign: 'center' }}>
+              {props.image !== '0' && (
+                <div>
+                  <img src={imagesUrl + props.image} alt="" className="img-fluid" style={{ width: 100, margin: 'auto' }} />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* End: image */}
           {/* Start: comments */}
           <div style={{ textAlign: 'right' }}>
@@ -112,8 +120,8 @@ function Post(props) {
           </div>
           {showComments && (
             <>
-              <AllComments comments={props.commentsForThisPost} />
-              <CreateComment pid={props.id} onCreateComment={props.onCreateComment} />
+              <AllComments comments={props.commentsForThisPost} group={props.group} />
+              <CreateComment pid={props.id} onCreateComment={props.onCreateComment} group={props.group} groupId={props.groupId} />
             </>
           )}
           {/* End: comments */}

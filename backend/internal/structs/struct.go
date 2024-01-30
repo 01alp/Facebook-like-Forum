@@ -136,6 +136,7 @@ type PostStruct struct {
 	CreatedAt string          `json:"createdat"`
 	Privacy   int             `json:"privacy"`
 	Comments  []CommentStruct `json:"comments"`
+	GroupID   int             `json:"group_id,omitempty"`
 }
 type CommentStruct struct {
 	Id        int       `json:"id"`
@@ -144,6 +145,7 @@ type CommentStruct struct {
 	CreatedAt time.Time `json:"createdat"`
 	Message   string    `json:"message"`
 	Image     string    `json:"image"`
+	GroupID   int       `json:"group_id,omitempty"`
 }
 type PostsAndCommentsPayload struct {
 	Posts []PostStruct `json:"posts"`
@@ -157,12 +159,12 @@ type PostMemberStruct struct {
 // -------------------------------- GROUPS ------------------------------------
 
 type GroupStruct struct {
-	Id          int    `json:"id"`
-	Title       string `json:"title"`
-	Creator     int    `json:"creator"`
-	Description string `json:"description"`
-	CreatedAt   string `json:"createdat"`
-	MemberCount int    `json:"membercount,omitempty"`
+	Id          int                 `json:"id"`
+	Title       string              `json:"title"`
+	Creator     int                 `json:"creator"`
+	Description string              `json:"description"`
+	CreatedAt   string              `json:"createdat"`
+	MemberCount int                 `json:"membercount,omitempty"`
 	Members     []GroupMemberStruct `json:"members"` // New field added
 }
 
@@ -333,4 +335,28 @@ type GroupRequestNotifStruct struct {
 	GroupId   int    `json:"groupid"`
 	GroupName string `json:"groupname"`
 	CreatorId int    `json:"creatorid"`
+}
+
+type UpdateAttendeeResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+}
+
+type UpdateAttendeeRequest struct {
+	EventID int `json:"eventId"`
+	GroupID int `json:"groupId"`
+	UserID  int `json:"userId"`
+	Status  int `json:"status"`
+}
+
+type GroupEventAttendees struct {
+	// EventID int `json:"eventId"` //omitted for cleaner payload
+	// GroupID int `json:"groupId"` //currently not needed, only used as a selector
+	UserID int `json:"userId"`
+	Status int `json:"status"`
+}
+
+type GroupEventWithAttendees struct {
+	GroupEvent
+	Attendees []GroupEventAttendees `json:"attendees"`
 }

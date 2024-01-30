@@ -1,13 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import GroupImg from '../assets/img/socialFav.png';
-import { CreateEventModal, GroupMemberList, JoinButton } from '../modules/Group';
+import { GroupMemberList, JoinButton } from '../modules/Group';
+import { EventCard, CreateEventModal } from '../modules/GroupEvent';
+import CreatePost from '../posts/CreatePost.js';
+import AllPosts from '../posts/AllPosts.js';
+import { GroupContext } from '../store/group-context.js';
 import NotGroupMembers from '../posts/notGroupMembers';
+import { PostsContext } from '../store/posts-context.js';
 
 const GroupProfilePage = () => {
   const { groupId } = useParams();
+  const [groupEvents, setGroupEvents] = useState(null);
   const [groupInfo, setGroupInfo] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [groupPosts, setGroupPosts] = useState([]);
+
+  const groupCtx = useContext(GroupContext);
 
   const fetchGroup = async () => {
     try {
@@ -26,7 +35,7 @@ const GroupProfilePage = () => {
 
       const allGroups = await response.json();
       const specificGroup = allGroups.find((group) => group.id === parseInt(groupId));
-      console.log(specificGroup);
+      console.log('Specific group', specificGroup); //TODO remove later
 
       if (specificGroup) {
         setGroupInfo(specificGroup);
@@ -40,13 +49,42 @@ const GroupProfilePage = () => {
     }
   };
 
+  const getGroupEvents = async (groupId) => {
+    try {
+      const resp = await fetch('http://localhost:8080/getGroupEvents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ groupId }),
+      });
+
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch events: ${resp.status}`);
+      }
+
+      const events = await resp.json();
+      console.log('Events payload:', events); //TODO remove later
+      setGroupEvents(events);
+    } catch (error) {
+      console.error('Error fetching group events:', error);
+    }
+  };
+
   useEffect(() => {
     fetchGroup();
-  }, [groupId]);
+    getGroupEvents(parseInt(groupId));
+    setGroupPosts(groupCtx.groupPostsData.filter((post) => post.group_id == groupId));
+  }, [groupId, groupCtx.groupPostsData]);
 
   // Callback function for the JoinButton
   const handleGroupUpdate = () => {
     fetchGroup(); // Re-fetch the specific group's data
+  };
+
+  // Callback function for CreateEvent modal
+  const handleEventUpdate = () => {
+    getGroupEvents(parseInt(groupId));
   };
 
   if (isLoading) {
@@ -54,14 +92,15 @@ const GroupProfilePage = () => {
   }
 
   if (!groupInfo) {
-    return <div>Group not found.</div>;
+    console.log('groupInfo', groupInfo); //TODO remove later
+    return <div>Loading...</div>;
   }
-
   const excludeUserIds = groupInfo.members.map((member) => member.userid);
   if (groupInfo.creator) {
     excludeUserIds.push(groupInfo.creator);
   }
   console.log('excludedUserIds', excludeUserIds);
+
   return (
     <div className="container" id="mainContainer">
       <div className="row">
@@ -79,10 +118,24 @@ const GroupProfilePage = () => {
               >
                 Events:
               </a>
+
+              <span
+                className="badge bg-danger badge-counter"
+                style={{
+                  pointerEvents: 'none',
+                  fontSize: 16,
+                  margin: 5,
+                  borderRadius: 30,
+                }}
+              >
+                <i className="fas fa-bell fa-fw" style={{}}></i>
+                {groupEvents ? groupEvents.length : 0}
+              </span>
+
               <div className="collapse" id="collapse-1">
                 <p>Collapse content.</p>
                 {/* Start: createEventDiv */}
-                <CreateEventModal groupId={groupId} />
+                <CreateEventModal groupId={groupId} callBack={handleEventUpdate} />
                 {/* End: createEventForm */}
                 {/* Start: Events List */}
                 <div
@@ -95,10 +148,12 @@ const GroupProfilePage = () => {
                 >
                   <h5 style={{ marginRight: 5, marginLeft: 5 }}>Events List:</h5>
                   {/* Start: Events list Div */}
-                  <div>
-                    {/* Start: EventDiv */}
-                    Event List
-                  </div>
+                  <EventCard
+                    groupEvents={groupEvents}
+                    groupInfo={groupInfo}
+                    currentUser={+localStorage.getItem('user_id' ?? 0)}
+                    handleEventUpdate={handleEventUpdate}
+                  />
                   {/* End: Events list Div */}
                 </div>
                 {/* End: Events List */}
@@ -174,7 +229,23 @@ const GroupProfilePage = () => {
           </div>
           {/* End: groupListpageDiv */}
           {/* Start: GroupPosts */}
-          <div>Group Posts here</div>
+          <div style={{ padding: 5 }}>
+            <a
+              className="btn btn-primary btn-lg"
+              data-bs-toggle="collapse"
+              aria-expanded="false"
+              aria-controls="collapse-create-post"
+              href="#collapse-create-post"
+              role="button"
+              style={{}}
+            >
+              Create Post
+            </a>
+            <div className="collapse" id="collapse-create-post" style={{ padding: 5 }}>
+              <CreatePost group={true} onCreatePost={groupCtx.onCreatePost} groupId={groupId} />
+            </div>
+            <AllPosts data={groupPosts} onCreateComment={groupCtx.onCreateComment} group={true} groupId={groupId} />
+          </div>
           {/* End: GroupPosts */}
         </div>
       </div>

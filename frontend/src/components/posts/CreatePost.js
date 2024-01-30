@@ -25,7 +25,7 @@ function CreatePost(props) {
     event.preventDefault();
 
     const enteredContent = contentInput.current.value;
-    const chosenPrivacy = +privacyInputRef.current.value;
+    const chosenPrivacy = props.group ? 0 : +privacyInputRef.current.value;
 
     const formData = new FormData();
     formData.append('image', uploadedImg);
@@ -33,18 +33,22 @@ function CreatePost(props) {
       author: userId,
       message: enteredContent,
       privacy: chosenPrivacy,
+      group_id: props.group ? +props.groupId : null,
     };
+
     formData.append('json', JSON.stringify(jsonData));
 
     console.log('create post data: ', formData);
 
     props.onCreatePost(formData);
 
+    if (!props.group) {
+      privacyInputRef.current.value = 0;
+      imgInputRef.current.value = '';
+      setUploadedImg(null);
+      setImagePreview(null);
+    }
     contentInput.current.value = '';
-    privacyInputRef.current.value = 0;
-    imgInputRef.current.value = '';
-    setUploadedImg(null);
-    setImagePreview(null);
     setErrorMessage('');
   }
 
@@ -93,7 +97,7 @@ function CreatePost(props) {
         {/* Start: Create post form */}
         <form style={{ padding: 5 }} onSubmit={SubmitHandler}>
           {/* Start: createPostAuthorDiv */}
-          <div className="d-flex justify-content-between createPostAuthorDiv" style={{ margin: 5 }}>
+          {/* <div className="d-flex justify-content-between createPostAuthorDiv" style={{ margin: 5 }}>
             <div className="d-flex align-items-lg-center UserDiv" id="userDiv-1">
               <Link className="link-up" to={`/profile/${userId}`}>
                 <div id="postUserDiv-1" className="postUser">
@@ -104,27 +108,33 @@ function CreatePost(props) {
                 </div>
               </Link>
             </div>
-            <span>123</span>
-          </div>
+          </div> */}
+          <h5>Create Post</h5>
           {/* End: createPostAuthorDiv */}
-          {/* Start: Select private */}
-          <div>
-            <select className="form-select dropdown" style={{ margin: 5 }} defaultValue="0" ref={privacyInputRef} onChange={handlePrivacyChange}>
-              <optgroup label="This is a group">
-                <option value="0">Public 🟢</option>
-                <option value="2">OnlyFans 🔓</option>
-                <option value="1">Private 🔐</option>
-              </optgroup>
-            </select>
-          </div>
-          {/* End: Select private */}
-          {selectedPrivacy === '2' && (
-            <AlertElement
-              message="&#9432; OnlyFans posts are visible to your close friends only. You can add close friends by going to your profile and under followers check the box next to a name"
-              type="light"
-              dismissible={false}
-            />
+          {/* Start: Select privacy*/}
+          {!props.group && (
+            <>
+              <div>
+                <select className="form-select dropdown" style={{ margin: 5 }} defaultValue="0" ref={privacyInputRef} onChange={handlePrivacyChange}>
+                  <optgroup label="This is a group">
+                    <option value="0">Public 🟢</option>
+                    <option value="2">OnlyFans 🔓</option>
+                    <option value="1">Private 🔐</option>
+                  </optgroup>
+                </select>
+              </div>
+              {selectedPrivacy === '2' && (
+                <AlertElement
+                  message="&#9432; OnlyFans posts are visible to your close friends only. You can add close friends by going to your profile and under followers check the box next to a name"
+                  type="light"
+                  dismissible={false}
+                />
+              )}
+            </>
           )}
+
+          {/* End: Select privacy */}
+
           {/* Start: create post text */}
           <div>
             <textarea
@@ -142,27 +152,29 @@ function CreatePost(props) {
           </div>
           {/* End: create post text */}
           {/* Start: adImage */}
-          <div className="d-flex d-lg-flex flex-column justify-content-between" style={{ margin: 5 }}>
-            {/* Start: imagePoster */}
-            <div>
-              {/* Start: image */}
+          {!props.group && (
+            <div className="d-flex d-lg-flex flex-column justify-content-between" style={{ margin: 5 }}>
+              {/* Start: imagePoster */}
+              <div>
+                {/* Start: image */}
 
-              <input
-                className="form-control"
-                type="file"
-                name="image"
-                accept="image/*"
-                required=""
-                style={{ margin: 5 }}
-                ref={imgInputRef}
-                onChange={imgUploadHandler}
-              />
-              {/* End: image */}
+                <input
+                  className="form-control"
+                  type="file"
+                  name="image"
+                  accept="image/*"
+                  required=""
+                  style={{ margin: 5 }}
+                  ref={imgInputRef}
+                  onChange={imgUploadHandler}
+                />
+                {/* End: image */}
+              </div>
+              {errorMessage !== '' && <AlertElement message={errorMessage} type="warning" dismissible={true} onAlertDismiss={setErrorMessage} />}
+              {imagePreview && <img src={imagePreview} width={'100px'} />}
+              {/* End: imagePoster */}
             </div>
-            {errorMessage !== '' && <AlertElement message={errorMessage} type="warning" dismissible={true} onAlertDismiss={setErrorMessage} />}
-            {imagePreview && <img src={imagePreview} width={'100px'} />}
-            {/* End: imagePoster */}
-          </div>
+          )}
           {/* End: adImage */}
           <button className="btn btn-primary" type="submit" style={{ margin: 5 }}>
             Submit

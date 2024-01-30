@@ -8,7 +8,6 @@ const AllUsers = () => {
 
   const { error, isLoaded, data } = useGet(`/users`, 'GET');
   const users = data;
-  console.log(users);
 
   if (!isLoaded) return <div>Loading...</div>;
   if (error) return <div>Error: {error.message}</div>;
@@ -21,7 +20,7 @@ const AllUsers = () => {
       console.log(`Navigating to profile with ID: ${id}`);
       navigate(`/profile/${id}`);
     } else {
-      console.log("No valid target found for navigation.");
+      console.log('No valid target found for navigation.');
     }
   }
   return (

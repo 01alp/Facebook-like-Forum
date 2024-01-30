@@ -46,7 +46,7 @@ export const PostsContextProvider = (props) => {
 
       if (resp.ok) {
         const data = await resp.json();
-        console.log('Posts and comments data: ', data);
+        // console.log('Posts and comments data: ', data);
 
         sortData(data);
       } else {
@@ -67,8 +67,6 @@ export const PostsContextProvider = (props) => {
         postsData.posts[i].comments.sort((a, b) => Date.parse(b.createdat) - Date.parse(a.createdat));
       }
     }
-
-    console.log('number of posts loaded: ', postsData.posts.length);
 
     addUserData(postsData.posts);
   };

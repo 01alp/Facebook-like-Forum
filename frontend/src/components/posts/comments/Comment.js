@@ -30,7 +30,7 @@ function Comment(props) {
       <div className="commentContent" style={{ margin: '5px' }}>
         <span>{props.message}</span>
       </div>
-      {props.image !== '0' && (
+      {!props.group && props.image !== '0' && (
         <div className="d-flex justify-content-center">
           <img src={imagesUrl + props.image} alt="" width={'100px'} />
         </div>

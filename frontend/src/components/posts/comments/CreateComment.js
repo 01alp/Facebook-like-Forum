@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Avatar from '../../modules/Avatar';
 import { ImageValidation } from '../../utils/commonFunc.js';
-import ErrorAlert from '../../modules/AlertElement.js';
+import AlertElement from '../../modules/AlertElement.js';
 
 function CreateComment(props) {
   const userId = +localStorage.getItem('user_id');
@@ -30,6 +30,7 @@ function CreateComment(props) {
       postId: props.pid,
       userId: userId, // author
       message: enteredContent,
+      group_id: props.group ? +props.groupId : 0,
     };
     formData.append('json', JSON.stringify(jsonData));
 
@@ -38,9 +39,11 @@ function CreateComment(props) {
     props.onCreateComment(formData);
 
     commentInput.current.value = '';
-    imgInputRef.current.value = '';
-    setUploadedCommentImg(null);
-    setImagePreview(null);
+    if (!props.group) {
+      imgInputRef.current.value = '';
+      setUploadedCommentImg(null);
+      setImagePreview(null);
+    }
     setErrorMessage('');
   }
 
@@ -93,24 +96,27 @@ function CreateComment(props) {
           placeholder="Comment min3-max200"
           ref={commentInput}
         />
-        <div>
-          {/* Start: image */}
+        {!props.group && (
+          <div>
+            {/* Start: image */}
 
-          <input
-            className="form-control"
-            type="file"
-            name={`comment-image-${props.pid}`}
-            id={`comment-image-${props.pid}`}
-            accept=".jpg, .jpeg, .png, .gif"
-            onChange={CommentImgUploadHandler}
-            style={{ margin: 5 }}
-            ref={imgInputRef}
-          />
+            <input
+              className="form-control"
+              type="file"
+              name={`comment-image-${props.pid}`}
+              id={`comment-image-${props.pid}`}
+              accept=".jpg, .jpeg, .png, .gif"
+              onChange={CommentImgUploadHandler}
+              style={{ margin: 5 }}
+              ref={imgInputRef}
+            />
 
-          {imagePreview && <img src={imagePreview} width={'80px'} />}
-          {errorMessage && <ErrorAlert errorMessage={errorMessage} onErrorDismiss={setErrorMessage} />}
-          {/* End: Image Upload */}
-        </div>
+            {imagePreview && <img src={imagePreview} width={'80px'} />}
+            {errorMessage !== '' && <AlertElement message={errorMessage} type="warning" dismissible={true} onAlertDismiss={setErrorMessage} />}
+            {/* End: Image Upload */}
+          </div>
+        )}
+
         <button className="btn btn-primary" type="submit" style={{ margin: 5 }}>
           Submit
           <i className="far fa-paper-plane" style={{ marginLeft: 5 }} />

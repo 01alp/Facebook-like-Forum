@@ -1,24 +1,23 @@
-import { useEffect, useState } from 'react';
-import NotificationItems from './NotificationItems';
+import { useEffect, useState } from "react";
+import NotificationItems from "./NotificationItems";
 
 const AllNotificationItems = (props) => {
   const [notiArr, setNotiArr] = useState([]);
 
   useEffect(() => {
-    const storedNotif = JSON.parse(localStorage.getItem('new_notif')) || []; // Add a default value here
+    const storedNotif = JSON.parse(localStorage.getItem("new_notif")) || []; // Add a default value here
     setNotiArr(storedNotif);
   }, []);
 
   useEffect(() => {
     // This will always be an array, so no error should occur here.
-    localStorage.setItem('new_notif', JSON.stringify(Object.values(notiArr)));
-    console.log(notiArr);
+    localStorage.setItem("new_notif", JSON.stringify(Object.values(notiArr)));
   }, [notiArr]);
 
   const removeNotification = (notifId) => {
     const updatedNotiArr = notiArr.filter((noti) => noti.id !== notifId);
     setNotiArr(updatedNotiArr);
-    localStorage.setItem('new_notif', JSON.stringify(updatedNotiArr));
+    localStorage.setItem("new_notif", JSON.stringify(updatedNotiArr));
   };
 
   //console.log('last exit before bridge: ', notiArr);

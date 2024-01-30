@@ -37,11 +37,21 @@ func NewPostHandler(w http.ResponseWriter, r *http.Request) {
 
 	newPost.Image = filename
 
-	// Insert new post into database
-	if err := sqlQueries.InsertNewPost(newPost); err != nil {
-		logger.ErrorLogger.Println("Error creating new post:", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	if newPost.GroupID == 0 {
+		// Insert new post into database
+		if err := sqlQueries.InsertNewPost(newPost); err != nil {
+			logger.ErrorLogger.Println("Error creating new group post:", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		// Insert new group post into database
+		if err := sqlQueries.InsertNewGroupPost(newPost); err != nil {
+			logger.ErrorLogger.Println("Error creating new post:", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
+
 	w.WriteHeader(http.StatusCreated)
 }

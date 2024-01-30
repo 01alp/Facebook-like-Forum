@@ -419,3 +419,107 @@ func KickFromGroup(groupID, userID, userToKickID int) bool {
 
 	return true
 }
+
+func GetGroupPosts(userID int) ([]structs.PostStruct, error) {
+
+	// query group ids
+	rows, err := database.DB.Query(`SELECT group_id FROM group_members WHERE user_id = ?`, userID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting group ids:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groupIDs []int
+	for rows.Next() {
+		var groupID int
+		if err := rows.Scan(&groupID); err != nil {
+			logger.ErrorLogger.Println("Error scanning rows for group ids:", err)
+			return nil, err
+		}
+
+		groupIDs = append(groupIDs, groupID)
+	}
+
+	// query posts
+	var posts []structs.PostStruct
+	for _, groupID := range groupIDs {
+		rows, err := database.DB.Query(`SELECT * FROM group_posts WHERE group_id = ?`, groupID)
+		if err != nil {
+			logger.ErrorLogger.Println("Error getting group posts:", err)
+			return nil, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var post structs.PostStruct
+			if err := rows.Scan(&post.Id, &post.Author, &post.GroupID, &post.Message, &post.CreatedAt); err != nil {
+				logger.ErrorLogger.Println("Error scanning rows for group posts:", err)
+				return nil, err
+			}
+
+			posts = append(posts, post)
+		}
+	}
+
+	return posts, nil
+}
+
+func GetGroupComments(postID int) ([]structs.CommentStruct, error) {
+
+	var comments []structs.CommentStruct
+	rows, err := database.DB.Query(`SELECT * FROM group_post_comments WHERE group_post_id = ?`, postID)
+	if err != nil {
+		logger.ErrorLogger.Println("Error getting group comments:", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var comment structs.CommentStruct
+		if err := rows.Scan(&comment.Id, &comment.UserId, &comment.PostId, &comment.Message, &comment.CreatedAt); err != nil {
+			logger.ErrorLogger.Println("Error scanning rows for group comments:", err)
+			return nil, err
+		}
+
+		comments = append(comments, comment)
+	}
+
+	return comments, nil
+}
+
+func InsertNewGroupPost(post structs.PostStruct) error {
+	// Prepare the SQL query
+	query := "INSERT INTO group_posts (author_id, group_id, message) VALUES (?, ?, ?)"
+	stmt, err := database.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	// Execute the query
+	_, err = stmt.Exec(post.Author, post.GroupID, post.Message)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func InsertNewGroupComment(comment structs.CommentStruct) error {
+	// Prepare the SQL query
+	query := "INSERT INTO group_post_comments (group_post_id, author_id, message) VALUES (?, ?, ?)"
+	stmt, err := database.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	// Execute the query
+	_, err = stmt.Exec(comment.PostId, comment.UserId, comment.Message)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

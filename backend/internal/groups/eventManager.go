@@ -42,6 +42,27 @@ func CreateEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error adding new event to db", http.StatusInternalServerError)
 		return
 	}
+	//--------------------add to event_receipt table-------------------- //TODO decide if using elswhere is better
+	allGroupMembers, err := sqlQueries.GetGroupMembers(Event.GroupId)
+	if err != nil {
+		logger.ErrorLogger.Println("Error geting group members from db: ", err)
+		return
+	}
+
+	var recipientMembers []int
+
+	for _, member := range allGroupMembers.Members {
+		if member.UserId == Event.CreatorId {
+			continue
+		}
+		recipientMembers = append(recipientMembers, member.UserId)
+	}
+	err = sqlQueries.AddEventReceipts(Event.Id, recipientMembers)
+	if err != nil {
+		logger.ErrorLogger.Println("Error adding event_receipts to db: ", err)
+		return
+	}
+	//--------------------add to event_receipt table--------------------
 	Event.Id = eventID
 
 	response := structs.GroupEventResponse{

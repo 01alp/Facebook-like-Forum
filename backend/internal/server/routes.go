@@ -87,9 +87,12 @@ func (s *Server) RegisterRoutes() {
 	mux.HandleFunc("/getGroupCount", Middleware(AuthMiddlewareHandler{Handler: groups.GetTotalGroupCount, RequiresAuth: false}))
 	mux.HandleFunc("/leaveGroup", Middleware(AuthMiddlewareHandler{Handler: groups.LeaveGroup, RequiresAuth: true}))
 	mux.HandleFunc("/kickFromGroup", Middleware(AuthMiddlewareHandler{Handler: groups.KickFromGroup, RequiresAuth: true}))
+	mux.HandleFunc("/getGroupPosts", Middleware(AuthMiddlewareHandler{Handler: groups.GetGroupPostsHandler, RequiresAuth: true}))
 
 	//Group events:
 	mux.HandleFunc("/createEvent", Middleware(AuthMiddlewareHandler{Handler: groups.CreateEvent, RequiresAuth: true}))
+	mux.HandleFunc("/getGroupEvents", Middleware(AuthMiddlewareHandler{Handler: groups.GetGroupEvents, RequiresAuth: false}))
+	mux.HandleFunc("/updateAttendees", Middleware(AuthMiddlewareHandler{Handler: groups.UpdateAttendees, RequiresAuth: false}))
 
 	// websocket:
 	mux.HandleFunc("/ws", websocket.UpgradeHandler)

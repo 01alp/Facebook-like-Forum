@@ -15,6 +15,7 @@ function AllComments(props) {
         message={comment.message}
         createdAt={comment.createdat}
         image={comment.image}
+        group={props.group}
       />
     );
   });
